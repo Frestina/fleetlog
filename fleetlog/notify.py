@@ -65,8 +65,10 @@ def run(cfg: Config) -> int:
     copy.write_text(recap.markdown(data["facts"], projects, data["since"], data["until"]))
     summary, body = text(data, projects)
 
+    # "default" is the action a click on the notification itself invokes;
+    # Omarchy's shell invokes no other on a click.
     argv = ["notify-send", f"--app-name={APP}", "--urgency=critical",
-            "--action=open=Open the recap", "--wait", "--", summary,
+            "--action=default=Open the recap", "--wait", "--", summary,
             html.escape(body, quote=False)]
     try:
         proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
@@ -85,7 +87,7 @@ def run(cfg: Config) -> int:
             return 1
         _write(SHOWN, wid)
     print(f"shown: {summary}")
-    if out.strip() == "open":
+    if out.strip() == "default":
         return open_terminal(str(copy))
     return 0
 

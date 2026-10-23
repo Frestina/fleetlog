@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # A fake notify-send. $FL_NOTIFY says what it does: ok (put up, closed
-# without a click), open (clicked), fail (no notification daemon) or slow
+# without a click), open (clicked, so the default action), fail (no
+# notification daemon) or slow
 # (stays up for 2 seconds, then closes).
 "$(dirname "$0")/record" notify-send "$@"
 case ${FL_NOTIFY:-ok} in
@@ -8,7 +9,7 @@ case ${FL_NOTIFY:-ok} in
     echo "Failed to connect to the notification daemon" >&2
     exit 1
     ;;
-  open) echo open ;;
+  open) echo default ;;
   slow) sleep 2 ;;
 esac
 exit 0
