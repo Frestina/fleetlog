@@ -102,7 +102,7 @@ class CollectTest(FleetTest):
 
     def test_machines_from_the_config_alone(self):
         (self.fleet.home("anvil") / ".config" / "fleetwatch" / "hosts").unlink()
-        self.fleet.config("[machines]\nbench = bench\nhere = local\n")
+        self.fleet.config("[machines]\nbench = bench\nhere = local  # this one\n")
         cfg = self.fleet.load()
         self.assertEqual([(m.label, m.local) for m in cfg.machines],
                          [("bench", False), ("here", True)])

@@ -98,7 +98,8 @@ def hosts_path() -> Path:
 
 
 def load() -> Config:
-    parser = configparser.ConfigParser(interpolation=None, delimiters=("=",))
+    parser = configparser.ConfigParser(interpolation=None, delimiters=("=",),
+                                       inline_comment_prefixes=("#",))
     parser.optionxform = str  # labels keep their case
     path = config_path()
     try:
