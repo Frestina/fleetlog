@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# A fake loginctl: records the call and does nothing.
+"$(dirname "$0")/record" loginctl "$@"
+echo "${FL_LINGER:-yes}"

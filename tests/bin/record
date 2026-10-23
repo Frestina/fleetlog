@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Shared by the fakes below: records the call as <name> then its arguments,
+# NUL-separated, one file per call under $FL_FAKE/calls.
+fake=${FL_FAKE:?fake: FL_FAKE is not set}
+name=$1
+shift
+call=$(mktemp "$fake/calls/$name.XXXXXX") || exit 1
+printf '%s\0' "$@" >"$call"

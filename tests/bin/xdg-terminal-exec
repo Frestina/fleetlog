@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# A fake xdg-terminal-exec: records the call and does nothing.
+"$(dirname "$0")/record" xdg-terminal-exec "$@"

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# A fake systemd-run: records the call and does nothing.
+"$(dirname "$0")/record" systemd-run "$@"

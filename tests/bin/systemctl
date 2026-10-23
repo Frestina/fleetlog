@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# A fake systemctl: records the call and does nothing.
+"$(dirname "$0")/record" systemctl "$@"
