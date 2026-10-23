@@ -6,6 +6,11 @@ recap from the last 3 days is there and has not been shown here, raises one
 notification. Clicking it opens the full recap in a terminal, from a copy
 written here, so opening it needs no second ssh call.
 
+It is raised as critical, so it stays on screen until it is clicked or
+dismissed: the author is often away from the machine when it comes. Omarchy's
+shell keeps any other notification for 30 seconds at most. Critical does not
+get past Do Not Disturb there, which it only allows for plain notify-send.
+
 A recap counts as shown once notify-send has put it up, not when it is
 clicked: notify-send --wait only returns when the notification closes, so a
 notify-send still running after a few seconds means it is up. One that exits
@@ -60,8 +65,9 @@ def run(cfg: Config) -> int:
     copy.write_text(recap.markdown(data["facts"], projects, data["since"], data["until"]))
     summary, body = text(data, projects)
 
-    argv = ["notify-send", f"--app-name={APP}", "--action=open=Open the recap", "--wait",
-            "--", summary, html.escape(body, quote=False)]
+    argv = ["notify-send", f"--app-name={APP}", "--urgency=critical",
+            "--action=open=Open the recap", "--wait", "--", summary,
+            html.escape(body, quote=False)]
     try:
         proc = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, text=True)
@@ -122,7 +128,8 @@ def _say_unreachable(why: str) -> int:
     if _read(SAID) != today:
         try:
             done = subprocess.run(
-                ["notify-send", f"--app-name={APP}", "--", "git-fleetlog: no weekly recap",
+                ["notify-send", f"--app-name={APP}", "--urgency=critical", "--",
+                 "git-fleetlog: no weekly recap",
                  html.escape(f"{why}. Trying again every hour.", quote=False)],
                 stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
         except (OSError, subprocess.TimeoutExpired) as e:

@@ -51,10 +51,12 @@ MAIN = (
     Timer("git-fleetlog-retry", "the retry of machines not reached", ("weekly", "--retry"),
           ("OnCalendar=Fri *-*-* 16..23:45:00", "OnCalendar=Sat,Sun *-*-* *:45:00"), QUIET),
 )
-# Long enough to wait for a click: notify-send --wait returns when it closes.
+# No time limit: the notification stays until it is clicked or dismissed, and
+# notify-send --wait has to be there to open the recap when it is clicked.
+# While it waits, the hourly timer finds the service running and starts nothing.
 VIEWER = (
     Timer("git-fleetlog-notify", "the weekly notification", ("notify",),
-          ("OnCalendar=Fri..Sun *-*-* *:50:00",), ("Nice=10", "TimeoutStartSec=12h")),
+          ("OnCalendar=Fri..Sun *-*-* *:50:00",), ("Nice=10", "TimeoutStartSec=infinity")),
 )
 ALL = MAIN + VIEWER
 

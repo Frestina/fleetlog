@@ -199,6 +199,9 @@ it. The weekly run must not be noticed there:
   not been shown on this viewer, it raises one notification: the commit and
   project count and the busiest projects. Clicking it opens the full recap in
   a terminal (`less`), from a copy written on the viewer.
+- It is critical, so it stays on screen until it is clicked or dismissed: the
+  author is often away from the machine when it comes. The service waits for
+  the click with no time limit. Do Not Disturb still holds it back.
 - A recap counts as shown once the notification is up, not when it is
   clicked. When notify-send fails (no notification daemon, a locked session),
   the next hour tries again.

@@ -46,8 +46,8 @@ git fleetlog timers install viewer
 git fleetlog latest       # the last weekly recap, any time
 ```
 
-They show a notification once the week's recap is ready. Clicking it opens
-the recap in a terminal.
+They show a notification once the week's recap is ready. It stays until you
+click it away, and clicking it opens the recap in a terminal.
 
 ## Config
 

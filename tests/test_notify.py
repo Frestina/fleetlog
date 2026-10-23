@@ -30,6 +30,7 @@ class NotifyTest(FleetTest):
         self.assertEqual(self.run_notify(), 0)
         [call] = self.fleet.calls("notify-send")
         self.assertIn("Your week: 1 commit in 1 project", call)
+        self.assertIn("--urgency=critical", call)
         self.assertIn("tool: 1, work left", call[-1])
         self.assertEqual(self.run_notify(), 0)
         self.assertEqual(len(self.fleet.calls("notify-send")), 1)
