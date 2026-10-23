@@ -63,6 +63,7 @@ homeserver = ~/srv
 
 [machines]
 nas = nas
+homeserver = local   # this machine, when it has no hosts file
 
 [exclude]
 repos = ~/Projects/scratch

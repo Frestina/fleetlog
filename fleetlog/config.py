@@ -3,8 +3,9 @@
 Machines come from the Fleetwatch hosts file and from [machines] in
 git-fleetlog's own config, in that order. A line of the hosts file is
 <label> <ssh target> [<hostname>], and the line whose hostname is this
-machine's, or whose target is "local", is this machine. With neither file,
-the fleet is this machine alone.
+machine's, or whose target is "local", is this machine; in [machines], the
+one whose target is "local". When none is, this machine is added under its
+hostname. With neither file, the fleet is this machine alone.
 
 The author's commits are the ones whose author email is in an [identity
 "<name>"] section of the global git config (git-whoami's), in user.email, or
@@ -21,6 +22,7 @@ The config, ~/.config/git-fleetlog/config, is optional:
 
     [machines]
     nas = nas
+    laptop = local
 
     [exclude]
     repos = ~/Projects/scratch
@@ -106,7 +108,7 @@ def load() -> Config:
     except (OSError, UnicodeDecodeError, configparser.Error) as e:
         raise ConfigError(f"{path} does not read: {e}") from None
 
-    machines = _hosts() + [Machine(label, target.strip())
+    machines = _hosts() + [Machine(label, target.strip(), local=target.strip() == "local")
                            for label, target in _section(parser, "machines").items()]
     seen: set[str] = set()
     for m in machines:

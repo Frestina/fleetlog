@@ -100,6 +100,17 @@ class CollectTest(FleetTest):
         facts = collect.collect_all(self.fleet.load(), *ALL)[0]
         self.assertEqual(len(facts["repos"]), 1)
 
+    def test_machines_from_the_config_alone(self):
+        (self.fleet.home("anvil") / ".config" / "fleetwatch" / "hosts").unlink()
+        self.fleet.config("[machines]\nbench = bench\nhere = local\n")
+        cfg = self.fleet.load()
+        self.assertEqual([(m.label, m.local) for m in cfg.machines],
+                         [("bench", False), ("here", True)])
+        self.fleet.repo("anvil", "Projects/a")
+        facts = collect.collect_all(cfg, *ALL)
+        self.assertEqual([len(f["repos"]) for f in facts], [0, 1])
+        self.assertEqual(len(self.fleet.calls()), 1)
+
     def test_unreachable(self):
         self.fleet.unreachable("crate")
         facts = collect.collect_all(self.fleet.load(), *ALL)[2]

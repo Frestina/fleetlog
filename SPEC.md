@@ -142,6 +142,7 @@ homeserver = ~/srv         # searched there as well as the folders for all
 [machines]
 # Extra machines beyond the Fleetwatch hosts file: <label> = <ssh target>
 nas = nas
+homeserver = local         # this machine, when it has no hosts file
 
 [exclude]
 repos = ~/Projects/scratch
