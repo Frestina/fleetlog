@@ -123,8 +123,9 @@ and the time each machine was read.
   Merge commits are left out.
 - **Where a commit was made**: a commit on three machines is shown once, by
   hash, under the machine whose HEAD reflog says it was made there (a commit,
-  cherry-pick, rebase or merge, not a pull). When no machine says so, for
-  example a commit made on github.com, it is shown under none.
+  cherry-pick, rebase, pull --rebase or merge, not a plain pull or a
+  fast-forward). When no machine says so, for example a commit made on
+  github.com, it is shown under none.
 
 ## Config
 

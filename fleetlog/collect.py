@@ -39,9 +39,13 @@ LIMIT = 16 * 1024 * 1024  # bytes of output kept from one machine
 US = "\x1f"
 
 # Reflog subjects of a commit made on this machine, as opposed to one that
-# arrived by pull, fetch or checkout.
-MADE = re.compile(r"(commit|cherry-pick|revert|am|merge|rebase( -i)? \((pick|reword|squash|"
-                  r"fixup|edit|continue|finish)\))\b")
+# arrived by pull, fetch or checkout. A rebase's picks are made here, those of
+# pull --rebase too. A fast-forward merge and a rebase's finish only move HEAD
+# to a commit that is there already, maybe one made elsewhere; every commit
+# made here has a line of its own. Branch names hold no colon.
+MADE = re.compile(r"(?:commit|cherry-pick|revert|am|merge(?![^:]*: Fast-forward)"
+                  r"|(?:rebase|pull)[^:(]* \((?:pick|reword|squash|fixup|edit|continue)\))"
+                  r"(?![\w-])")
 
 
 def command(machine: Machine, since: int, until: int, folders: Sequence[str]) -> list[str]:

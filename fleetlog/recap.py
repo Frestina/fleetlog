@@ -6,8 +6,9 @@ with no commits yet has no root and is a project on its own.
 
 Only the author's commits count: those whose author email is one of the
 identities. A commit on three machines is shown once, under the machines
-whose HEAD reflog says it was made there (a commit, cherry-pick, rebase or
-merge, not a pull), or under no machine when none says so.
+whose HEAD reflog says it was made there (a commit, cherry-pick, rebase,
+pull --rebase or merge, not a plain pull or a fast-forward), or under no
+machine when none says so.
 
 Left off is a project's state now, on every machine that has it: commits not
 pushed, branches never pushed, the checked-out branch behind its upstream as

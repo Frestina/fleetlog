@@ -135,8 +135,9 @@ class FakeFleet:
         self.git(repo, "init", "-q")
         return repo
 
-    def commit(self, repo: Path, subject: str, email: str = ME, when: int | None = None) -> str:
-        name = f"f{len(list(repo.glob('f*')))}"
+    def commit(self, repo: Path, subject: str, email: str = ME, when: int | None = None,
+               name: str | None = None) -> str:
+        name = name or f"f{len(list(repo.glob('f*')))}"
         (repo / name).write_text(subject + "\n")
         self.git(repo, "add", name)
         self.git(repo, "commit", "-q", "-m", subject, email=email, when=when)

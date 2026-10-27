@@ -68,6 +68,69 @@ class CollectTest(FleetTest):
         self.assertEqual(anvil["repos"][0]["made"], [made])
         self.assertEqual(bench["repos"][0]["made"], [])
 
+    def test_a_rebased_commit_was_made_there(self):
+        repo = self.fleet.repo("anvil", "Projects/tool")
+        self.fleet.commit(repo, "First")
+        bare = self.fleet.remote(repo)
+        other = self.fleet.clone(bare, "bench", "Projects/tool")
+        self.fleet.commit(repo, "Elsewhere")
+        self.fleet.git(repo, "push", "-q")
+        self.fleet.commit(other, "Rebased", name="rebased")
+        self.fleet.git(other, "fetch", "-q")
+        self.fleet.git(other, "rebase", "-q", "origin/main")
+        self.fleet.git(other, "push", "-q")
+        self.fleet.git(repo, "pull", "-q")
+        self.fleet.commit(repo, "Elsewhere too")
+        self.fleet.git(repo, "push", "-q")
+        self.fleet.commit(other, "Pulled with rebase", name="pulled")
+        self.fleet.git(other, "pull", "-q", "--rebase")
+        [r] = collect.collect_all(self.fleet.load(), *ALL)[1]["repos"]
+        made = {c["subject"] for c in r["commits"] if c["hash"] in r["made"]}
+        self.assertEqual(made, {"Rebased", "Pulled with rebase"})
+
+    def test_a_fast_forward_made_nothing_there(self):
+        repo = self.fleet.repo("anvil", "Projects/tool")
+        self.fleet.commit(repo, "First")
+        bare = self.fleet.remote(repo)
+        other = self.fleet.clone(bare, "bench", "Projects/tool")
+        self.fleet.commit(repo, "Merged in")
+        self.fleet.git(repo, "push", "-q")
+        self.fleet.git(other, "fetch", "-q")
+        self.fleet.git(other, "merge", "-q", "origin/main")
+        self.fleet.commit(repo, "Rebased onto")
+        self.fleet.git(repo, "push", "-q")
+        self.fleet.git(other, "fetch", "-q")
+        self.fleet.git(other, "rebase", "-q", "origin/main")
+        bench = collect.collect_all(self.fleet.load(), *ALL)[1]
+        self.assertEqual(bench["repos"][0]["made"], [])
+
+    def test_which_reflog_lines_say_a_commit_was_made_there(self):
+        for subject, made in [
+            ("commit: Draw beds", True),
+            ("commit (initial): First", True),
+            ("commit (amend): Draw beds", True),
+            ("cherry-pick: Draw beds", True),
+            ("revert: Revert \"Draw beds\"", True),
+            ("am: Draw beds", True),
+            ("rebase (pick): Draw beds", True),
+            ("rebase -i (pick): Draw beds", True),
+            ("rebase (reword): Draw beds", True),
+            ("rebase (continue): Draw beds", True),
+            ("pull --rebase (pick): Draw beds", True),
+            ("pull -q --rebase (pick): Draw beds", True),
+            ("merge idea: Fast-forward", False),
+            ("merge origin/main: Fast-forward", False),
+            ("rebase (start): checkout origin/main", False),
+            ("rebase (finish): returning to refs/heads/main", False),
+            ("pull --rebase (finish): returning to refs/heads/main", False),
+            ("pull: Fast-forward", False),
+            ("checkout: moving from main to idea", False),
+            ("reset: moving to HEAD~1", False),
+            ("clone: from example.org:tool.git", False),
+        ]:
+            with self.subTest(subject):
+                self.assertEqual(bool(collect.MADE.match(subject)), made)
+
     def test_reading_never_writes_the_index(self):
         repo = self.fleet.repo("bench", "Projects/tool")
         self.fleet.commit(repo, "First")
