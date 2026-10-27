@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.frestina.fleetlog",
+  "name": "Fleetlog",
+  "version": "0.1.0",
+  "author": "Frestina",
+  "license": "MIT",
+  "description": "git-fleetlog in the bar: your commits from every repo on every machine, sorted by what needs doing, and where each project was left.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "panel/Fleetlog.qml"
+  },
+  "barWidget": {
+    "displayName": "Fleetlog",
+    "description": "Bar icon that opens your week across machines and what is left off; right-click for the full recap in a terminal.",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

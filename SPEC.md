@@ -104,6 +104,48 @@ under "All pushed and committed", each with the machines it was read on.
 `--json` carries the same facts, and adds hashes, full times, paths, counts
 and the time each machine was read.
 
+## The panel
+
+The Markdown recap reads top to bottom, and a long week is a lot to take in.
+On an Omarchy machine the same facts are also a panel in the desktop shell,
+sorted by what needs doing.
+
+- **Opening it**: a bar icon, and a keybinding the author adds to Hyprland
+  (`omarchy-shell shell toggle io.github.frestina.fleetlog`, Super+Ctrl+G
+  for the author, next to Omarchy's own Super+Ctrl panels). Both toggle the
+  same panel. A right click on the icon opens the full recap in a terminal.
+- **What it reads**: on open, the latest weekly recap (`latest --json`, one
+  ssh call to the main machine). A refresh button reads every machine now
+  (`--json`, the last 7 days). The panel keeps what it read while the shell
+  runs, so opening it again asks no machine anything, except that a weekly
+  recap is fetched again when it is more than an hour old, to pick up a new
+  week's. The header says which it is: "Weekly recap, built Fri 15:15" or
+  "Read at 14:20".
+- **What it shows**, top to bottom:
+  - Machines not reached or not fully read, first, as in the recap. A short
+    panel never just means missing data.
+  - **Needs attention**: every project with something left off, with its
+    left-off lines and its commit count in the window.
+  - **This week**: projects with commits and nothing left off, newest first.
+  - A click on a project shows its commits, newest first, and the machines
+    it is on.
+  - A button opens the full Markdown recap in a terminal (`less`).
+- **Its parts**: `manifest.json` and `panel/` make this repo an Omarchy shell
+  plugin, `io.github.frestina.fleetlog`: one bar widget with its own panel,
+  as Omarchy's audio and Bluetooth icons are. It is installed by linking this
+  checkout into `~/.config/omarchy/plugins/`, so it runs this checkout's own
+  `bin/git-fleetlog` and is rolled out with the same pull. The shell does not
+  reload a linked plugin by itself: `omarchy restart shell` after a pull that
+  changes `panel/`.
+- **Its rules**: the panel only displays. Which commits count, what is left
+  off and how machines are read stay in the command and its JSON. It runs the
+  command with an argument list, never a shell string, and shows every text
+  from the JSON as plain text, never as markup, since commit subjects and
+  branch names come from other machines.
+- **Not in the first version**: a count on the bar icon (it would need
+  polling), opening a terminal in a project's folder on its machine, and a
+  fresh read on open.
+
 ## Where things come from
 
 - **Machines**: the Fleetwatch hosts file (`~/.config/fleetwatch/hosts`), so
@@ -242,7 +284,8 @@ sending the recap anywhere by itself.
 ## Conventions
 
 Same as fleetdoctor: Python 3.11+ standard library only on the machine that
-runs the command, plain bash on the far side. Tests with a fake `ssh` and
+runs the command, plain bash on the far side, and QML in the Omarchy shell
+for the panel. Tests with a fake `ssh` and
 throwaway repos and homes, no second machine (`./tests/run`). Fictional
 machine names and addresses in code, tests and docs; the author's machines
 in this spec are the motivating case, not test data. Docs: sentence case

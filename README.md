@@ -49,6 +49,28 @@ git fleetlog latest       # the last weekly recap, any time
 They show a notification once the week's recap is ready. It stays until you
 click it away, and clicking it opens the recap in a terminal.
 
+## Panel
+
+On Omarchy the recap is also a panel in the bar, sorted by what needs doing:
+projects with work left off first, then the ones all pushed. It opens on the
+latest weekly recap; its refresh button reads every machine now. Click a
+project for its commits; right-click the icon for the full recap in a
+terminal.
+
+```
+ln -s "$PWD" ~/.config/omarchy/plugins/io.github.frestina.fleetlog
+omarchy plugin enable io.github.frestina.fleetlog
+```
+
+To open it from the keyboard too, add to `~/.config/hypr/bindings.lua`:
+
+```lua
+o.bind("SUPER + CTRL + G", "Fleetlog", "omarchy-shell shell toggle io.github.frestina.fleetlog")
+```
+
+The shell does not reload a linked plugin by itself: run `omarchy restart
+shell` after pulling a change to `panel/`.
+
 ## Config
 
 `~/.config/git-fleetlog/config`, optional:

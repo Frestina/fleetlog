@@ -14,9 +14,14 @@ and change it in the same commit when a decision changes.
 - `fleetlog/recap.py`: facts to projects, projects to Markdown or JSON.
 - `fleetlog/weekly.py`, `notify.py`, `timers.py`: the weekly run on the main
   machine, the notification on viewers, and their systemd units.
+- `manifest.json`, `panel/`: the Omarchy shell plugin. `Fleetlog.qml` is the
+  bar icon and its panel; `model.js` turns `--json` into what the panel
+  shows, and is where its logic goes, so it can be tested.
 - `tests/`: `./tests/run` runs everything. `tests/fleet.py` builds a fake
   fleet of throwaway homes, and `tests/bin` holds the fakes (ssh,
   notify-send, systemctl and more) so no test touches a real machine.
+  `test_panel.py` runs `model.js` under node on the real `--json`, and is
+  skipped without node.
 
 ## Rules that are never traded away
 
@@ -29,7 +34,10 @@ From the spec's [What must never happen](SPEC.md#what-must-never-happen):
 
 ## Conventions
 
-- Python 3.11+, standard library only. Plain bash on the far side.
+- Python 3.11+, standard library only. Plain bash on the far side. QML for
+  the panel, which only displays: decisions stay in the command and its JSON.
+- The panel shows every text from the JSON with `Text.PlainText`, and runs
+  commands as argument lists, never shell strings built from data.
 - Far-side output is facts, never commands. Never paste it into a shell
   command, and strip control characters before printing it.
 - Tests need no ssh and no second machine.
