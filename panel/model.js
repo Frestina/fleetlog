@@ -13,8 +13,10 @@
 //     quiet      projects with neither, counted
 //     attentionCount
 //   }
-//   project: {key, name, account, count, countText, left: [text],
+//   project: {key, name, account, count, countText, left: [{text, ask}],
 //             commits: [line], more, machines: [line]}
+//   ask: on the first left-off line of each machine, what its agent button
+//        passes to `git-fleetlog ask-agent`: {machine, path, lines: [text]}
 //
 // Text from other machines (subjects, paths, branch names, errors) is
 // stripped of control characters here, and the panel shows it as plain text.
@@ -97,6 +99,24 @@ function gaps(data) {
   return out
 }
 
+// The left-off lines, with an agent button on each machine's first. The
+// path goes to the command as an argument, exact, since the agent starts in
+// it; it is never shown.
+function leftOff(p) {
+  var entries = p.left_off || []
+  return entries.map(function(e, i) {
+    var line = { text: clean(e.text), ask: null }
+    if (i > 0 && entries[i - 1].machine === e.machine) return line
+    var mine = entries.filter(function(o) { return o.machine === e.machine })
+    var named = mine.filter(function(o) { return typeof o.path === "string" })[0]
+    var path = named ? named.path : ((p.paths || {})[e.machine] || [])[0]
+    if (typeof path === "string" && path !== "")
+      line.ask = { machine: String(e.machine), path: path,
+                   lines: mine.map(function(o) { return clean(o.text) }) }
+    return line
+  })
+}
+
 function project(p) {
   var commits = p.commits || []
   var shown = commits.slice(0, COMMITS).map(function(c) {
@@ -112,7 +132,7 @@ function project(p) {
     account: clean(p.account),
     count: commits.length,
     countText: commits.length ? n(commits.length, "commit") : "no commits",
-    left: (p.left_off || []).map(function(e) { return clean(e.text) }),
+    left: leftOff(p),
     commits: shown,
     more: commits.length - shown.length,
     machines: machines,

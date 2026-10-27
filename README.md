@@ -72,6 +72,21 @@ o.bind("SUPER + CTRL + G", "Fleetlog", "omarchy-shell shell toggle io.github.fre
 The shell does not reload a linked plugin by itself: run `omarchy restart
 shell` after pulling a change to `panel/`.
 
+### Ask your agent
+
+**Ask agent** at the bottom of the panel starts your default coding agent
+(`omarchy agent`; pick one in the Omarchy menu if you haven't) with
+[a guide](docs/AGENT_SETUP.md) to git-fleetlog, to go through your config,
+machines and timers, or ask about what the panel shows.
+
+Each project that needs attention has an agent button for each machine with
+something left off. It opens a terminal with your agent already in that
+repo, told what is left off, so you can sort it out together: here, or on the
+other machine over `ssh -t`, with that machine's own default agent (or a
+shell, when it has none). Omarchy starts agents with approvals switched off,
+so [their guide](docs/AGENT_REPO.md) has them look freely but ask before
+committing, pushing or deleting anything.
+
 ## Config
 
 `~/.config/git-fleetlog/config`, optional. `git fleetlog config` opens it,

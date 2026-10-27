@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# A fake omarchy-default-agent: claude, or none while $FL_FAKE/no-agent is
+# there.
+[[ -e ${FL_FAKE:?}/no-agent ]] || echo claude

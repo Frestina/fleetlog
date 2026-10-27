@@ -19,9 +19,12 @@ import "model.js" as Model
 // anything; refresh reads every machine now, once for all monitors.
 //
 // left = the panel · right = the full recap in a terminal.
-// In the panel: r refresh, t the full recap, s settings, j/k or arrows
-// scroll, Esc close. Settings opens the config (`git-fleetlog config`), and
-// saving it reads every machine again.
+// In the panel: r refresh, t the full recap, s settings, a ask agent, j/k or
+// arrows scroll, Esc close. Settings opens the config (`git-fleetlog config`),
+// and saving it reads every machine again. Ask agent starts the default
+// coding agent on the setup; the agent button by a project's left-off lines
+// starts it in that repo, on the machine they are on (`git-fleetlog
+// ask-agent`).
 Panel {
   id: root
   moduleName: "io.github.frestina.fleetlog"
@@ -42,6 +45,7 @@ Panel {
   readonly property string glyphAlert: String.fromCodePoint(0xF0026)
   readonly property string glyphCheck: String.fromCodePoint(0xF012C)
   readonly property string glyphSettings: String.fromCodePoint(0xF0493)
+  readonly property string glyphAgent: String.fromCodePoint(0xF06A9)
 
   // The last read (parsed --json), what the panel shows of it (Model.view,
   // worded again on each open, so "Read at" turns into a day when it should),
@@ -174,6 +178,14 @@ Panel {
     root.close()
     Quickshell.execDetached([root.command, "config"])
     configRetry.restart()
+  }
+
+  // The default coding agent: on the setup with no `ask`, else in the repo
+  // `ask` names (Model.leftOff). After --, since its lines came from a machine.
+  function askAgent(ask) {
+    root.close()
+    Quickshell.execDetached([root.command, "ask-agent"].concat(
+      ask ? ["--", ask.machine, ask.path].concat(ask.lines) : []))
   }
 
   // Every monitor's icon sees the save, at the same moment; reading since
@@ -378,19 +390,36 @@ Panel {
           }
         }
 
+        // Each machine's first line has the agent button for that machine.
         Repeater {
           model: row.modelData.left
 
-          delegate: Text {
-            required property string modelData
+          delegate: RowLayout {
+            id: leftRow
+            required property var modelData
             width: rowColumn.width
-            leftPadding: Style.space(18)
-            textFormat: Text.PlainText
-            text: "• " + modelData
-            wrapMode: Text.Wrap
-            color: root.barForeground
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.bodySmall
+            spacing: Style.space(4)
+
+            Text {
+              Layout.fillWidth: true
+              leftPadding: Style.space(18)
+              textFormat: Text.PlainText
+              text: "• " + leftRow.modelData.text
+              wrapMode: Text.Wrap
+              color: root.barForeground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+            }
+
+            PanelActionButton {
+              visible: !!leftRow.modelData.ask
+              iconText: root.glyphAgent
+              tooltipText: leftRow.modelData.ask
+                ? "Work on it with your agent, in this repo on " + leftRow.modelData.ask.machine : ""
+              foreground: root.barForeground
+              fontFamily: root.fontFamily
+              onClicked: root.askAgent(leftRow.modelData.ask)
+            }
           }
         }
 
@@ -460,6 +489,7 @@ Panel {
         if (t === "r") root.refresh()
         else if (t === "t") root.openRecap()
         else if (t === "s") root.editConfig()
+        else if (t === "a") root.askAgent(null)
       }
 
       Column {
@@ -647,7 +677,7 @@ Panel {
 
         PanelSeparator { id: bottomRule; foreground: root.barForeground }
 
-        // ---------- Footer: settings, then the keys on a line of their own ----------
+        // ---------- Footer: ask agent · settings, then the keys on a line of their own ----------
         Column {
           id: footer
           width: parent.width
@@ -655,6 +685,16 @@ Panel {
 
           RowLayout {
             width: parent.width
+
+            Button {
+              iconText: root.glyphAgent
+              text: "Ask agent"
+              tooltipText: "Your default coding agent goes through the setup with you, or explains what the panel shows (a)"
+              foreground: root.barForeground
+              fontFamily: root.fontFamily
+              fontSize: Style.font.bodySmall
+              onClicked: root.askAgent(null)
+            }
 
             Item { Layout.fillWidth: true }
 

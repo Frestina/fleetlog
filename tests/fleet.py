@@ -2,8 +2,10 @@
 
 FakeFleet gives every machine a throwaway home and puts tests/bin first on
 the PATH. Its ssh runs the remote command here with HOME set to the target's
-home, and notify-send, systemctl, loginctl, systemd-run and xdg-terminal-exec
-only record their calls. The local machine is the first one, with its own
+home, and notify-send, systemctl, loginctl, systemd-run, xdg-terminal-exec
+and Omarchy's launchers only record their calls (omarchy-agent-prompt with
+the folder it ran in first). The default agent is claude, or none after
+no_agent(). The local machine is the first one, with its own
 home as HOME, and a Fleetwatch hosts file lists them all. Git reads a
 fixture global config with two identities, and never the real one.
 
@@ -106,6 +108,10 @@ class FakeFleet:
             flag.touch()
         else:
             flag.unlink()
+
+    def no_agent(self) -> None:
+        """No default coding agent is picked, here or on any machine."""
+        (self.root / "no-agent").touch()
 
     def calls(self, name: str = "ssh") -> list[list[str]]:
         out = []

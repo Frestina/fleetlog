@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# A fake omarchy-agent-prompt: records the folder it was started in, then its
+# arguments, and starts no agent.
+"$(dirname "$0")/record" omarchy-agent-prompt "$PWD" "$@"

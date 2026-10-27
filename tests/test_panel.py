@@ -63,11 +63,36 @@ class PanelTest(FleetTest):
         [notes] = view["attention"]
         self.assertEqual(notes["account"], "personal")
         self.assertEqual(notes["countText"], "1 commit")
-        self.assertEqual(notes["left"], ["bench: no remote, so none of it is pushed anywhere"])
+        self.assertEqual(notes["left"], [{
+            "text": "bench: no remote, so none of it is pushed anywhere",
+            "ask": {"machine": "bench", "path": notes_path(self, "bench"),
+                    "lines": ["bench: no remote, so none of it is pushed anywhere"]}}])
         [line] = notes["commits"]
         self.assertTrue(line.startswith("Nov "), line)
         self.assertTrue(line.endswith(" bench: Write it down"), line)
         self.assertEqual(notes["machines"], [f"bench: {notes_path(self, 'bench')}"])
+
+    def test_each_machine_with_work_left_gets_one_agent_button(self):
+        tool = self.fleet.repo("anvil", "Projects/tool")
+        self.fleet.commit(tool, "First")
+        bare = self.fleet.remote(tool)
+        self.fleet.commit(tool, "Here")
+        (tool / "draft").write_text("half done\n")
+        there = self.fleet.clone(bare, "bench", "Projects/tool")
+        self.fleet.commit(there, "There")
+
+        [p] = self.view()["attention"]
+        self.assertEqual([line["text"] for line in p["left"]], [
+            "anvil: 1 commit on main not pushed",
+            "anvil: uncommitted changes (1 untracked file)",
+            "bench: 1 commit on main not pushed",
+        ])
+        first, second, third = p["left"]
+        self.assertEqual(first["ask"], {"machine": "anvil", "path": str(tool),
+                                        "lines": [first["text"], second["text"]]})
+        self.assertIsNone(second["ask"])
+        self.assertEqual(third["ask"], {"machine": "bench", "path": str(there),
+                                        "lines": [third["text"]]})
 
     def test_a_machine_not_reached_comes_first_and_is_named(self):
         self.fleet.commit(self.fleet.repo("anvil", "Projects/tool"), "First")

@@ -48,6 +48,9 @@ notification on the machine the author is using.
 - `git fleetlog config`: opens the config in Omarchy's default editor (or
   `$VISUAL`, `$EDITOR`), after writing a commented guide there when there is
   no config yet. It never changes a config that is there.
+- `git fleetlog ask-agent [-- <machine> <folder> [<left-off line>...]]`:
+  starts the user's coding agent, on the setup or in one repo. What the
+  panel's agent buttons run; see [Your agent](#your-agent).
 - `--json` on any of these: the same facts, exact, for scripts and agents.
 - `git fleetlog --reuse-from <unix time>`: the last 7 days from the last read
   if it started at or after that time, else from a new read that is kept for
@@ -145,6 +148,8 @@ sorted by what needs doing.
   - A settings button (`s`) runs `git fleetlog config`, to include or exclude
     projects, folders and machines. Saving the config reads every machine
     again, once for all monitors, so the panel shows it without a refresh.
+  - An "Ask agent" button (`a`), and an agent button on the first left-off
+    line of each machine in a project: see [Your agent](#your-agent).
 - **Its parts**: `manifest.json` and `panel/` make this repo an Omarchy shell
   plugin, `io.github.frestina.fleetlog`: one bar widget with its own panel,
   as Omarchy's audio and Bluetooth icons are. It is installed by linking this
@@ -157,8 +162,40 @@ sorted by what needs doing.
   command with an argument list, never a shell string, and shows every text
   from the JSON as plain text, never as markup, since commit subjects and
   branch names come from other machines.
-- **Not in the first version**: opening a terminal in a project's folder on
-  its machine.
+
+### Your agent
+
+The panel can hand what it shows to the user's default coding agent
+(Omarchy's `omarchy agent`), the way Fleetwatch does for its issues.
+
+- **Ask agent**, in the footer: the agent starts with
+  [a setup guide](docs/AGENT_SETUP.md), to go through the config, machines,
+  folders, excludes and timers, or explain what the panel shows. It starts
+  even when the config does not read, so it can help fix it.
+- **The agent button** on a project needing attention, one per machine with
+  something left off, on that machine's first line: the agent starts in the
+  repo's folder on that machine, with [a guide](docs/AGENT_REPO.md) and the
+  left-off lines, to work on them with the user. On this machine it opens
+  as `omarchy agent` does; on another, a terminal here runs
+  `ssh -t <target>` and starts that machine's own default agent inline, in
+  the folder, where the work was left. A machine with no agent picked, or
+  no Omarchy, gets a shell in the folder instead. The folder is the one with
+  a left-off line naming it, else the project's first on that machine.
+- **What it may do**: Omarchy starts agents with approvals switched off, so
+  the repo guide holds the agent to looking freely and changing nothing
+  (commit, push, pull, reset, dropping a stash, deleting a branch) until the
+  user says yes, and never force-pushing. git-fleetlog itself still changes
+  no repo: the agent does, in a session the user started and sits in.
+- **Its ssh**: an interactive session the user asked for, not a run, so the
+  user's own ssh config applies, agent forwarding included where it is set,
+  which a push from the far side may need. The rules for runs (batch mode,
+  no agent) are unchanged.
+- **Far-side text**: the folder and the left-off lines came from the
+  machine. They go into the prompt quoted as data, with control characters
+  stripped, and to the far side as base64 arguments of a fixed script, so no
+  shell ever reads them as code.
+- With no default agent picked here, Omarchy's agent picker opens instead,
+  with a notification saying why.
 
 ## Where things come from
 
@@ -281,7 +318,8 @@ it. The weekly run must not be noticed there:
 1. **It never changes a repo.** No fetch, pull, push, gc or checkout, and
    `GIT_OPTIONAL_LOCKS=0`, so `git status` never writes the index. It reads
    what is already on disk, so "not pushed" means "not on a remote as far as
-   that machine last heard", and "behind" says when that was.
+   that machine last heard", and "behind" says when that was. The agent the
+   user starts from the panel may change one, on the user's yes.
 2. **It never hides a gap.** A machine that timed out or a repo that could not
    be read is shown as such. A short recap never just means missing data, and
    "all pushed and committed" names the machines it is true for.

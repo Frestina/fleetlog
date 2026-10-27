@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# A fake omarchy-launch-tui: records the call and opens no terminal.
+"$(dirname "$0")/record" omarchy-launch-tui "$@"

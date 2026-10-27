@@ -5,6 +5,8 @@
     git fleetlog status [--json]             only where each project was left
     git fleetlog latest [--json]             the last weekly recap, from the main machine
     git fleetlog config                      open the config, with a guide when it is new
+    git fleetlog ask-agent [-- MACHINE FOLDER [LEFT...]]
+                                             your coding agent, on the setup or on one repo
     git fleetlog weekly [--retry]            build the weekly recap (its timer runs this)
     git fleetlog notify                      the weekly notification (its timer runs this)
     git fleetlog timers install main|viewer
@@ -21,7 +23,7 @@ import re
 import sys
 import time
 
-from fleetlog import cache, collect, config, notify, recap, timers, weekly
+from fleetlog import agent, cache, collect, config, notify, recap, timers, weekly
 
 EXIT_OK, EXIT_GAPS, EXIT_ERROR = 0, 1, 2
 _AGO = re.compile(r"(\d+)([dw])")
@@ -61,6 +63,15 @@ def parser() -> argparse.ArgumentParser:
                    description="Opens ~/.config/git-fleetlog/config in Omarchy's editor, or "
                                "$VISUAL or $EDITOR, after writing a commented guide there when "
                                "there is no config yet.")
+    p = sub.add_parser("ask-agent", help="start your coding agent, on the setup or on one repo",
+                       description="Starts Omarchy's default coding agent to go through the "
+                                   "setup with you, or, given a machine and a repo's folder "
+                                   "there, in that folder on that machine to work on what is "
+                                   "left off (the panel's agent buttons). Put -- before the "
+                                   "machine, since the lines after it come from that machine.")
+    p.add_argument("machine", nargs="?", help="a machine's label")
+    p.add_argument("folder", nargs="?", help="the repo's full path on that machine")
+    p.add_argument("left", nargs="*", help="what is left off there, for the prompt")
     p = sub.add_parser("weekly", help="build the weekly recap (its timer runs this)")
     p.add_argument("--retry", action="store_true",
                    help="read again only the machines not reached last time")
@@ -87,7 +98,13 @@ def main(argv: list[str] | None = None) -> int:
             if args.action == "install":
                 return timers.install(args.role)
             return timers.remove() if args.action == "remove" else timers.status()
+        if args.cmd == "ask-agent" and args.machine is None:
+            agent.run(agent.setup())
         cfg = config.load()
+        if args.cmd == "ask-agent":
+            if args.folder is None:
+                p.error("ask-agent takes nothing, or a machine and a folder")
+            agent.run(*agent.repo(cfg, args.machine, args.folder, args.left))
         if args.cmd == "weekly":
             return weekly.retry(cfg) if args.retry else weekly.weekly(cfg)
         if args.cmd == "notify":
@@ -104,7 +121,8 @@ def main(argv: list[str] | None = None) -> int:
             return show(cfg, facts, until, until, args.json, status=True)
         start = args.since if args.since is not None else until - weekly.WEEK
         return show(cfg, collect.collect_all(cfg, start, until), start, until, args.json)
-    except (config.ConfigError, weekly.NoRecap, weekly.Busy, timers.TimersError) as e:
+    except (config.ConfigError, weekly.NoRecap, weekly.Busy, timers.TimersError,
+            agent.AgentError) as e:
         print(f"git-fleetlog: {e}", file=sys.stderr)
         return EXIT_ERROR
     except KeyboardInterrupt:
