@@ -95,9 +95,10 @@ fi
 
 declare -A visited=()
 for folder in "$@"; do
+  # A literal ~ from the command line, expanded here, on this machine.
   case $folder in
-    "~") folder=$HOME ;;
-    "~/"*) folder=$HOME/${folder#"~/"} ;;
+    \~) folder=$HOME ;;
+    \~/*) folder=$HOME/${folder#\~/} ;;
   esac
   if [[ ! -d $folder ]]; then
     rec N "$folder"
