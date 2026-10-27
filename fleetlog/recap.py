@@ -54,9 +54,10 @@ def clean(text: str) -> str:
 
 
 def build(facts: Sequence[dict], identities: dict[str, str], since: int, until: int,
-          exclude: Sequence[str] = ()) -> list[Project]:
+          exclude: Sequence[str] = (), exclude_projects: Sequence[str] = ()) -> list[Project]:
     """Every project the reached machines have, with the author's commits
-    between since and until."""
+    between since and until. Repos under an exclude path are left out, and
+    then the projects named in exclude_projects."""
     groups: dict[str, list[tuple[str, dict]]] = {}
     for m in facts:
         if not m.get("reached"):
@@ -66,7 +67,8 @@ def build(facts: Sequence[dict], identities: dict[str, str], since: int, until: 
                 continue
             key = repo["root"] or f"{m['label']}:{repo['path']}"
             groups.setdefault(key, []).append((m["label"], repo))
-    return [_project(key, members, identities, since, until) for key, members in groups.items()]
+    projects = (_project(key, members, identities, since, until) for key, members in groups.items())
+    return [p for p in projects if p.name not in exclude_projects]
 
 
 def _excluded(path: str, home: str | None, exclude: Sequence[str]) -> bool:

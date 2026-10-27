@@ -45,6 +45,9 @@ notification on the machine the author is using.
   time window. For "where was I?" without a week of commits around it.
 - `git fleetlog latest`: the last weekly recap the main machine built (one ssh
   call to it), instead of reading every machine again.
+- `git fleetlog config`: opens the config in Omarchy's default editor (or
+  `$VISUAL`, `$EDITOR`), after writing a commented guide there when there is
+  no config yet. It never changes a config that is there.
 - `--json` on any of these: the same facts, exact, for scripts and agents.
 - `git fleetlog --reuse-from <unix time>`: the last 7 days from the last read
   if it started at or after that time, else from a new read that is kept for
@@ -139,6 +142,9 @@ sorted by what needs doing.
     it is on.
   - A button opens the full Markdown recap of the same read in a terminal
     (`less`), from the cache.
+  - A settings button (`s`) runs `git fleetlog config`, to include or exclude
+    projects, folders and machines. Saving the config reads every machine
+    again, once for all monitors, so the panel shows it without a refresh.
 - **Its parts**: `manifest.json` and `panel/` make this repo an Omarchy shell
   plugin, `io.github.frestina.fleetlog`: one bar widget with its own panel,
   as Omarchy's audio and Bluetooth icons are. It is installed by linking this
@@ -163,7 +169,7 @@ sorted by what needs doing.
   machine Fleetwatch should not watch.
 - **Repos**: found by searching folders on each machine, `~/Projects` and
   `~/dotfiles` by default, 4 levels deep. The config can add folders for every
-  machine or for one machine, and exclude repos.
+  machine or for one machine, and exclude repos by folder or projects by name.
 - **The same repo on several machines** is one project, matched by its first
   commit, so a renamed folder or remote still matches.
 - **Which commits are the author's**: author email matches one of the
@@ -180,7 +186,9 @@ sorted by what needs doing.
 ## Config
 
 `~/.config/git-fleetlog/config`, optional. Without it the defaults above
-apply.
+apply. `git fleetlog config`, and the panel's settings button, open it, and
+write a guide there first when there is none: every setting commented out,
+so it changes nothing until one is turned on.
 
 ```ini
 [main]
@@ -196,7 +204,8 @@ nas = nas
 homeserver = local         # this machine, when it has no hosts file
 
 [exclude]
-repos = ~/Projects/scratch
+projects = scratch         # by the name the recap shows, on every machine
+repos = ~/Projects/scratch # that repo, and every repo under it
 
 [identity]
 emails = old-address@example.org

@@ -71,7 +71,7 @@ def run(cfg: Config) -> int:
         return 0
 
     projects = recap.build(data["facts"], cfg.identities, data["since"], data["until"],
-                           cfg.exclude)
+                           cfg.exclude, cfg.exclude_projects)
     copy = weekly.state_file(COPY)
     copy.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     copy.write_text(recap.markdown(data["facts"], projects, data["since"], data["until"]))

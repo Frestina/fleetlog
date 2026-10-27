@@ -19,7 +19,9 @@ import "model.js" as Model
 // anything; refresh reads every machine now, once for all monitors.
 //
 // left = the panel · right = the full recap in a terminal.
-// In the panel: r refresh, t the full recap, j/k or arrows scroll, Esc close.
+// In the panel: r refresh, t the full recap, s settings, j/k or arrows
+// scroll, Esc close. Settings opens the config (`git-fleetlog config`), and
+// saving it reads every machine again.
 Panel {
   id: root
   moduleName: "io.github.frestina.fleetlog"
@@ -28,6 +30,9 @@ Panel {
   readonly property string command: decodeURIComponent(
     Qt.resolvedUrl("../bin/git-fleetlog").toString().replace(/^file:\/\//, ""))
   readonly property string fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
+  // Matches config_path() in fleetlog/config.py.
+  readonly property string configPath: (Quickshell.env("XDG_CONFIG_HOME")
+    || Quickshell.env("HOME") + "/.config") + "/git-fleetlog/config"
 
   readonly property string glyphCommit: String.fromCodePoint(0xF0718)
   readonly property string glyphRefresh: String.fromCodePoint(0xF0450)
@@ -36,6 +41,7 @@ Panel {
   readonly property string glyphClosed: String.fromCodePoint(0xF0142)
   readonly property string glyphAlert: String.fromCodePoint(0xF0026)
   readonly property string glyphCheck: String.fromCodePoint(0xF012C)
+  readonly property string glyphSettings: String.fromCodePoint(0xF0493)
 
   // The last read (parsed --json), what the panel shows of it (Model.view,
   // worded again on each open, so "Read at" turns into a day when it should),
@@ -57,6 +63,11 @@ Panel {
   // exited or stream signals, so finish() keys off running and these.
   property bool procStarted: false
   property int procExitCode: 0
+
+  // When the config was saved (Unix seconds), and whether it was there to
+  // watch; see configSaved().
+  property real savedAt: 0
+  property bool configFound: false
 
   // Projects opened to show their commits, by key; kept across reads.
   property var openProjects: ({})
@@ -102,10 +113,11 @@ Panel {
     root.load(at)
   }
 
-  // Read every machine now, for this monitor's icon and the others: they all
-  // ask from the same moment, so the first reads and the rest reuse it.
-  function refresh() {
-    var from = Math.floor(Date.now() / 1000)
+  // Read every machine now, or since `from` (Unix seconds), for this
+  // monitor's icon and the others: they all ask from the same moment, so the
+  // first reads and the rest reuse it.
+  function refresh(from) {
+    if (from === undefined) from = Math.floor(Date.now() / 1000)
     var items = root.bar && typeof root.bar.moduleWidgets === "function"
       ? root.bar.moduleWidgets(root.moduleName) : []
     if (items.indexOf(root) < 0) items = items.concat([root])
@@ -154,6 +166,21 @@ Panel {
     Quickshell.execDetached(["omarchy-launch-tui", "--app-id=org.omarchy.terminal",
                              "bash", "-c", "\"$0\" \"$@\" | less", root.command,
                              "--reuse-from", String(from)])
+  }
+
+  // The config in Omarchy's editor; the command writes a commented guide
+  // there first when there is none.
+  function editConfig() {
+    root.close()
+    Quickshell.execDetached([root.command, "config"])
+    configRetry.restart()
+  }
+
+  // Every monitor's icon sees the save, at the same moment; reading since
+  // then lets them share one read once the editor is done writing.
+  function configSaved() {
+    if (!saveSettle.running) root.savedAt = Math.floor(Date.now() / 1000)
+    saveSettle.restart()
   }
 
   function toggleProject(key) {
@@ -211,6 +238,31 @@ Panel {
     onRunningChanged: if (!running) root.finish()
     stdout: StdioCollector { id: out; waitForEnd: true }
     stderr: StdioCollector { id: errOut; waitForEnd: true }
+  }
+
+  // A watch takes on a missing file only when its folder is there, so once
+  // the command has had time to write the config, watch it again.
+  FileView {
+    id: configFile
+    path: root.configPath
+    watchChanges: true
+    printErrors: false
+    onLoaded: root.configFound = true
+    onLoadFailed: root.configFound = false
+    onFileChanged: root.configSaved()
+  }
+
+  Timer {
+    id: configRetry
+    interval: 2000
+    onTriggered: if (!root.configFound) configFile.reload()
+  }
+
+  // Editors save in several steps; read once they are done.
+  Timer {
+    id: saveSettle
+    interval: 1000
+    onTriggered: root.refresh(root.savedAt)
   }
 
   FileView {
@@ -407,6 +459,7 @@ Panel {
       onTextKey: function(t) {
         if (t === "r") root.refresh()
         else if (t === "t") root.openRecap()
+        else if (t === "s") root.editConfig()
       }
 
       Column {
@@ -594,16 +647,38 @@ Panel {
 
         PanelSeparator { id: bottomRule; foreground: root.barForeground }
 
-        Text {
+        // ---------- Footer: settings, then the keys on a line of their own ----------
+        Column {
           id: footer
           width: parent.width
-          textFormat: Text.PlainText
-          text: "Click a project for its commits · r refresh · t full recap"
-          horizontalAlignment: Text.AlignHCenter
-          wrapMode: Text.Wrap
-          color: root.dim(0.45)
-          font.family: root.fontFamily
-          font.pixelSize: Style.font.caption
+          spacing: Style.space(6)
+
+          RowLayout {
+            width: parent.width
+
+            Item { Layout.fillWidth: true }
+
+            Button {
+              iconText: root.glyphSettings
+              text: "Settings"
+              tooltipText: "Include or exclude projects, folders and machines (s)"
+              foreground: root.barForeground
+              fontFamily: root.fontFamily
+              fontSize: Style.font.bodySmall
+              onClicked: root.editConfig()
+            }
+          }
+
+          Text {
+            width: parent.width
+            textFormat: Text.PlainText
+            text: "Click a project for its commits · r refresh · t full recap"
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.Wrap
+            color: root.dim(0.45)
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+          }
         }
       }
     }

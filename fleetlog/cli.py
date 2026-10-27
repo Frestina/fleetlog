@@ -4,6 +4,7 @@
     git fleetlog --reuse-from <unix time>    the recap, sharing one read (the bar icon)
     git fleetlog status [--json]             only where each project was left
     git fleetlog latest [--json]             the last weekly recap, from the main machine
+    git fleetlog config                      open the config, with a guide when it is new
     git fleetlog weekly [--retry]            build the weekly recap (its timer runs this)
     git fleetlog notify                      the weekly notification (its timer runs this)
     git fleetlog timers install main|viewer
@@ -15,6 +16,7 @@ read, 2 an error.
 
 import argparse
 import datetime
+import os
 import re
 import sys
 import time
@@ -55,6 +57,10 @@ def parser() -> argparse.ArgumentParser:
                        ("latest", "the last weekly recap, from the main machine")):
         p = sub.add_parser(name, help=what, description=what)
         p.add_argument("--json", action="store_true", help="exact data instead of Markdown")
+    sub.add_parser("config", help="open the config in the editor, with a guide when it is new",
+                   description="Opens ~/.config/git-fleetlog/config in Omarchy's editor, or "
+                               "$VISUAL or $EDITOR, after writing a commented guide there when "
+                               "there is no config yet.")
     p = sub.add_parser("weekly", help="build the weekly recap (its timer runs this)")
     p.add_argument("--retry", action="store_true",
                    help="read again only the machines not reached last time")
@@ -74,6 +80,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.reuse_from is not None and (args.cmd is not None or args.since is not None):
         p.error("--reuse-from reads the last 7 days, with no command and no --since")
     try:
+        # Before the config is read, so one that does not read can be fixed.
+        if args.cmd == "config":
+            return edit()
         if args.cmd == "timers":
             if args.action == "install":
                 return timers.install(args.role)
@@ -102,10 +111,25 @@ def main(argv: list[str] | None = None) -> int:
         return 130
 
 
+def edit() -> int:
+    try:
+        path = config.ensure()
+    except OSError as e:
+        print(f"git-fleetlog: cannot write {config.config_path()}: {e.strerror}", file=sys.stderr)
+        return EXIT_ERROR
+    cmd = config.editor_command(path, sys.stdin.isatty())
+    try:
+        os.execvp(cmd[0], cmd)
+    except OSError as e:
+        print(f"git-fleetlog: cannot run {cmd[0]}: {e.strerror}", file=sys.stderr)
+        return EXIT_ERROR
+
+
 def show(cfg: config.Config, facts: list[dict], start: int, until: int, as_json: bool,
          status: bool = False) -> int:
     try:
-        projects = recap.build(facts, cfg.identities, start, until, cfg.exclude)
+        projects = recap.build(facts, cfg.identities, start, until, cfg.exclude,
+                               cfg.exclude_projects)
         text = (recap.as_json if as_json else recap.markdown)(
             facts, projects, start, until, status)
     except (KeyError, TypeError, ValueError, AttributeError) as e:

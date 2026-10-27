@@ -25,20 +25,57 @@ The config, ~/.config/git-fleetlog/config, is optional:
     laptop = local
 
     [exclude]
+    projects = scratch
     repos = ~/Projects/scratch
 
     [identity]
     emails = me@example.org
+
+`git fleetlog config` writes TEMPLATE there when there is none, and opens it.
 """
 
 import configparser
 import os
+import shlex
+import shutil
 import socket
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
 FOLDERS = ("~/Projects", "~/dotfiles")
+
+TEMPLATE = """\
+# Settings for git-fleetlog. Every one is optional: remove the # in front of
+# a setting to turn it on. The panel reads every machine again when you save.
+
+[exclude]
+# Projects to leave out, by the name the recap and the panel show.
+# projects = scratch old-experiment
+# Or by folder, on every machine: that repo, and every repo under it.
+# repos = ~/Projects/scratch
+
+[folders]
+# Where repos are looked for, 4 levels deep. "all" is every machine and
+# replaces the default, ~/Projects ~/dotfiles. A line for one machine, by its
+# label, adds folders there. A folder can be a single repo.
+# all = ~/Projects ~/dotfiles
+# homeserver = ~/srv ~/notes
+
+[main]
+# The machine that builds the weekly recap and keeps the latest one.
+# machine = homeserver
+
+[machines]
+# Machines beyond the Fleetwatch hosts file: <label> = <ssh target>, or
+# local for this machine.
+# nas = nas
+
+[identity]
+# Author emails whose commits count as yours, beyond those in your git
+# config (user.email and git-whoami's [identity "<name>"] sections).
+# emails = old-address@example.org
+"""
 
 
 class ConfigError(Exception):
@@ -58,6 +95,7 @@ class Config:
     main: str | None = None
     folders: dict[str, tuple[str, ...]] = field(default_factory=dict)
     exclude: tuple[str, ...] = ()
+    exclude_projects: tuple[str, ...] = ()
     identities: dict[str, str] = field(default_factory=dict)  # email -> account
 
     def folders_for(self, label: str) -> tuple[str, ...]:
@@ -129,8 +167,29 @@ def load() -> Config:
         main=main.strip() if main else None,
         folders=folders,
         exclude=tuple(parser.get("exclude", "repos", fallback="").split()),
+        exclude_projects=tuple(parser.get("exclude", "projects", fallback="").split()),
         identities=identities(parser.get("identity", "emails", fallback="").split()),
     )
+
+
+def ensure() -> Path:
+    """The config, written from TEMPLATE first when there is none."""
+    path = config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(path, "x") as f:
+            f.write(TEMPLATE)
+    except FileExistsError:
+        pass
+    return path
+
+
+def editor_command(path: Path, inline: bool) -> list[str]:
+    """Omarchy's default editor, in this terminal when there is one."""
+    if shutil.which("omarchy-launch-editor"):
+        return ["omarchy-launch-editor", *(["--inline"] if inline else []), str(path)]
+    editor = os.environ.get("VISUAL") or os.environ.get("EDITOR") or "nano"
+    return [*shlex.split(editor), str(path)]
 
 
 def _section(parser: configparser.ConfigParser, name: str) -> dict[str, str]:

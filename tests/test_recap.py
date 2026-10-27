@@ -11,7 +11,8 @@ class RecapTest(FleetTest):
     def build(self):
         cfg = self.fleet.load()
         facts = collect.collect_all(cfg, *ALL)
-        return facts, recap.build(facts, cfg.identities, *ALL, cfg.exclude)
+        return facts, recap.build(facts, cfg.identities, *ALL, cfg.exclude,
+                                   cfg.exclude_projects)
 
     def test_a_repo_on_two_machines_is_one_project_with_each_commit_once(self):
         repo = self.fleet.repo("anvil", "Projects/tool")
@@ -61,6 +62,14 @@ class RecapTest(FleetTest):
         self.fleet.repo("anvil", "Projects/keep")
         self.fleet.repo("anvil", "Projects/scratch/thing")
         self.fleet.config("[exclude]\nrepos = ~/Projects/scratch\n")
+        _, projects = self.build()
+        self.assertEqual([p.name for p in projects], ["keep"])
+
+    def test_exclude_by_name(self):
+        self.fleet.repo("anvil", "Projects/keep")
+        self.fleet.repo("anvil", "Projects/scratch")
+        self.fleet.repo("bench", "Projects/old/scratch")
+        self.fleet.config("[exclude]\nprojects = scratch\n")
         _, projects = self.build()
         self.assertEqual([p.name for p in projects], ["keep"])
 

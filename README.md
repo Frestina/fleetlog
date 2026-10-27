@@ -54,9 +54,9 @@ click it away, and clicking it opens the recap in a terminal.
 On Omarchy the recap is also an icon and a panel in the bar. The icon reads
 every machine once an hour and shows how many projects need attention. The
 panel shows that read sorted by what needs doing: projects with work left off
-first, then the ones all pushed. Its refresh button reads every machine now.
-Click a project for its commits; right-click the icon for the full recap in a
-terminal.
+first, then the ones all pushed. Its refresh button reads every machine now,
+and its settings button opens the config. Click a project for its commits;
+right-click the icon for the full recap in a terminal.
 
 ```
 ln -s "$PWD" ~/.config/omarchy/plugins/io.github.frestina.fleetlog
@@ -74,7 +74,8 @@ shell` after pulling a change to `panel/`.
 
 ## Config
 
-`~/.config/git-fleetlog/config`, optional:
+`~/.config/git-fleetlog/config`, optional. `git fleetlog config` opens it,
+with a commented guide when it is new:
 
 ```ini
 [main]
@@ -89,7 +90,8 @@ nas = nas
 homeserver = local   # this machine, when it has no hosts file
 
 [exclude]
-repos = ~/Projects/scratch
+projects = scratch          # by the name the recap shows
+repos = ~/Projects/scratch  # that repo, and every repo under it
 ```
 
 [SPEC.md](SPEC.md) has every decision behind it.
