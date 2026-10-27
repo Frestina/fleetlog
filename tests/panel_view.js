@@ -1,7 +1,7 @@
 // Runs panel/model.js under node as the panel does in the shell: git-fleetlog's
 // --json on stdin, {view} or {error} on stdout.
 //
-//   node tests/panel_view.js <source> <now, ms since the epoch>
+//   node tests/panel_view.js <now, ms since the epoch>
 //
 // The shell loads model.js as a QML library, whose first line node cannot
 // parse, so it is dropped here and the rest runs in a context of its own.
@@ -18,7 +18,7 @@ vm.runInContext(code, model, { filename: file })
 let out
 try {
   const data = model.parse(fs.readFileSync(0, "utf8"))
-  out = { view: model.view(data, process.argv[2], new Date(Number(process.argv[3]))) }
+  out = { view: model.view(data, new Date(Number(process.argv[2]))) }
 } catch (e) {
   out = { error: e.message }
 }

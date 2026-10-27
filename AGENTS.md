@@ -14,6 +14,7 @@ and change it in the same commit when a decision changes.
 - `fleetlog/recap.py`: facts to projects, projects to Markdown or JSON.
 - `fleetlog/weekly.py`, `notify.py`, `timers.py`: the weekly run on the main
   machine, the notification on viewers, and their systemd units.
+- `fleetlog/cache.py`: one read shared by the bar icons (`--reuse-from`).
 - `manifest.json`, `panel/`: the Omarchy shell plugin. `Fleetlog.qml` is the
   bar icon and its panel; `model.js` turns `--json` into what the panel
   shows, and is where its logic goes, so it can be tested.

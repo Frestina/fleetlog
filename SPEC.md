@@ -46,6 +46,9 @@ notification on the machine the author is using.
 - `git fleetlog latest`: the last weekly recap the main machine built (one ssh
   call to it), instead of reading every machine again.
 - `--json` on any of these: the same facts, exact, for scripts and agents.
+- `git fleetlog --reuse-from <unix time>`: the last 7 days from the last read
+  if it started at or after that time, else from a new read that is kept for
+  the next caller. The bar icon's hourly read, shared by every monitor.
 - `git fleetlog weekly [--retry]` and `git fleetlog notify`: what the timers
   run. `git fleetlog timers install main|viewer`, `timers remove` and
   `timers status` manage the timers.
@@ -114,13 +117,18 @@ sorted by what needs doing.
   (`omarchy-shell shell toggle io.github.frestina.fleetlog`, Super+Ctrl+G
   for the author, next to Omarchy's own Super+Ctrl panels). Both toggle the
   same panel. A right click on the icon opens the full recap in a terminal.
-- **What it reads**: on open, the latest weekly recap (`latest --json`, one
-  ssh call to the main machine). A refresh button reads every machine now
-  (`--json`, the last 7 days). The panel keeps what it read while the shell
-  runs, so opening it again asks no machine anything, except that a weekly
-  recap is fetched again when it is more than an hour old, to pick up a new
-  week's. The header says which it is: "Weekly recap, built Fri 15:15" or
-  "Read at 14:20".
+- **The count**: the icon shows how many projects need attention, on a
+  horizontal bar; the tooltip says it on a vertical one.
+- **What it reads**: the last 7 days from every machine, once an hour at :20
+  (`--json --reuse-from <the latest :20>`), and on the refresh button. Each
+  monitor has an icon of its own, and they share one read: the command keeps
+  the last read in `~/.cache/git-fleetlog/read.json` and answers from it when
+  it started at or after the time asked for, and a lock makes callers that
+  come together wait for one read. A suspend over a :20 catches up within a
+  minute of the resume. Opening the panel shows the last read and asks no
+  machine anything. The header says when it was: "Read at 14:20", or
+  "Read Tue 14:20" on another day. The weekly recap stays what the
+  notification shows and `latest` prints.
 - **What it shows**, top to bottom:
   - Machines not reached or not fully read, first, as in the recap. A short
     panel never just means missing data.
@@ -129,7 +137,8 @@ sorted by what needs doing.
   - **This week**: projects with commits and nothing left off, newest first.
   - A click on a project shows its commits, newest first, and the machines
     it is on.
-  - A button opens the full Markdown recap in a terminal (`less`).
+  - A button opens the full Markdown recap of the same read in a terminal
+    (`less`), from the cache.
 - **Its parts**: `manifest.json` and `panel/` make this repo an Omarchy shell
   plugin, `io.github.frestina.fleetlog`: one bar widget with its own panel,
   as Omarchy's audio and Bluetooth icons are. It is installed by linking this
@@ -142,9 +151,8 @@ sorted by what needs doing.
   command with an argument list, never a shell string, and shows every text
   from the JSON as plain text, never as markup, since commit subjects and
   branch names come from other machines.
-- **Not in the first version**: a count on the bar icon (it would need
-  polling), opening a terminal in a project's folder on its machine, and a
-  fresh read on open.
+- **Not in the first version**: opening a terminal in a project's folder on
+  its machine.
 
 ## Where things come from
 
@@ -229,8 +237,9 @@ it. The weekly run must not be noticed there:
 - Machines not reached are tried again hourly at :45 until Sunday night, since
   a viewer may be asleep on Friday afternoon, with the same window. The stored
   recap is updated each time one answers.
-- The minutes (:15, :45, :50) keep clear of Fleet doctor's runs, on the hour
-  and every 5 minutes from :02, so the two never ssh into a machine at once.
+- The minutes (:15, :45, :50, and :20 for the bar icon's read on viewers)
+  keep clear of Fleet doctor's runs, on the hour and every 5 minutes from
+  :02, so the two never ssh into a machine at once.
 - Only the latest recap is kept, as `latest.json`: the machines' facts, so a
   viewer renders it with its own identities and config.
 

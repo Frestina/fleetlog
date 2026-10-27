@@ -51,10 +51,11 @@ click it away, and clicking it opens the recap in a terminal.
 
 ## Panel
 
-On Omarchy the recap is also a panel in the bar, sorted by what needs doing:
-projects with work left off first, then the ones all pushed. It opens on the
-latest weekly recap; its refresh button reads every machine now. Click a
-project for its commits; right-click the icon for the full recap in a
+On Omarchy the recap is also an icon and a panel in the bar. The icon reads
+every machine once an hour and shows how many projects need attention. The
+panel shows that read sorted by what needs doing: projects with work left off
+first, then the ones all pushed. Its refresh button reads every machine now.
+Click a project for its commits; right-click the icon for the full recap in a
 terminal.
 
 ```

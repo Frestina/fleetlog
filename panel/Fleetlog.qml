@@ -11,10 +11,12 @@ import "model.js" as Model
 // commits count and what is left off, and says so in --json; this only shows
 // it, sorted by what needs doing (model.js). See SPEC.md, The panel.
 //
-// Opening it shows the latest weekly recap from the main machine (one ssh
-// call); refresh reads every machine now. What it read stays while the shell
-// runs, so opening it again asks no machine anything, except that a weekly
-// recap is fetched again after an hour, to pick up a new week's.
+// The icon reads every machine once an hour, at :20, clear of Fleet doctor's
+// runs and git-fleetlog's own timers, and shows how many projects need
+// attention. Every monitor has an icon of its own; they share one read
+// through `--reuse-from`, which the command answers from its cache once one
+// of them has read. Opening the panel shows that read and asks no machine
+// anything; refresh reads every machine now, once for all monitors.
 //
 // left = the panel · right = the full recap in a terminal.
 // In the panel: r refresh, t the full recap, j/k or arrows scroll, Esc close.
@@ -35,14 +37,22 @@ Panel {
   readonly property string glyphAlert: String.fromCodePoint(0xF0026)
   readonly property string glyphCheck: String.fromCodePoint(0xF012C)
 
-  // What the panel shows (Model.view), and where it came from: "weekly" for
-  // `latest --json`, "now" for `--json`.
-  property var view: null
-  property string source: ""
+  // The last read (parsed --json), what the panel shows of it (Model.view,
+  // worded again on each open, so "Read at" turns into a day when it should),
+  // and when its machines were read (Unix seconds). The hourly read is due at
+  // the latest :20; dueTried keeps a failed one from being tried again every
+  // minute until the next.
+  property var lastRead: null
+  property var now: new Date()
+  readonly property var view: root.lastRead ? Model.view(root.lastRead, root.now) : null
+  property real readAt: 0
+  property real dueTried: 0
   property bool loading: false
-  property string loadingSource: ""
   property string error: ""
   property real triedAt: 0
+  // A refresh that came mid-read (Unix seconds), asked for once it ends.
+  property real pendingFrom: 0
+  readonly property int count: root.view ? root.view.attentionCount : 0
   // Per run: a binary that fails to start only flips proc.running, with no
   // exited or stream signals, so finish() keys off running and these.
   property bool procStarted: false
@@ -60,24 +70,61 @@ Panel {
     var n = root.view.attentionCount
     return "git-fleetlog: " + (n === 0 ? "all pushed and committed"
       : n + (n === 1 ? " project needs" : " projects need") + " attention")
-      + " (" + root.view.header + ")"
+      + " (" + root.view.header.charAt(0).toLowerCase() + root.view.header.slice(1) + ")"
   }
 
-  function load(which) {
+  // The last 7 days, from the last read if it started at or after `from`
+  // (Unix seconds), else from a new one that the other monitors then share.
+  function load(from) {
     if (proc.running) return
     root.loading = true
-    root.loadingSource = which
     root.procStarted = false
     root.procExitCode = 0
     root.triedAt = Date.now()
-    proc.command = which === "now" ? [root.command, "--json"] : [root.command, "latest", "--json"]
+    proc.command = [root.command, "--json", "--reuse-from", String(Math.floor(from))]
     proc.running = true
   }
 
-  function refresh() { root.load("now") }
+  // The latest :20 at or before now, in Unix seconds.
+  function due() {
+    var d = new Date()
+    var at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), 20)
+    if (at > d) at = new Date(at.getTime() - 3600000)
+    return Math.floor(at.getTime() / 1000)
+  }
+
+  // Every minute: read once a :20 has passed since the last read. Checking,
+  // instead of waiting for the next :20, also catches up after a suspend.
+  function tick() {
+    var at = root.due()
+    if (proc.running || root.readAt >= at || root.dueTried === at) return
+    root.dueTried = at
+    root.load(at)
+  }
+
+  // Read every machine now, for this monitor's icon and the others: they all
+  // ask from the same moment, so the first reads and the rest reuse it.
+  function refresh() {
+    var from = Math.floor(Date.now() / 1000)
+    var items = root.bar && typeof root.bar.moduleWidgets === "function"
+      ? root.bar.moduleWidgets(root.moduleName) : []
+    if (items.indexOf(root) < 0) items = items.concat([root])
+    for (var i = 0; i < items.length; i++)
+      if (items[i] && typeof items[i].refreshFrom === "function") items[i].refreshFrom(from)
+  }
+
+  function refreshFrom(from) {
+    if (proc.running) root.pendingFrom = Math.max(root.pendingFrom, from)
+    else root.load(from)
+  }
 
   function finish() {
     root.loading = false
+    if (root.pendingFrom > 0) {
+      var from = root.pendingFrom
+      root.pendingFrom = 0
+      Qt.callLater(root.load, from)
+    }
     if (!root.procStarted) {
       root.error = "could not run " + root.command
       return
@@ -89,21 +136,24 @@ Panel {
       return
     }
     try {
-      root.view = Model.view(Model.parse(out.text), root.loadingSource, new Date())
-      root.source = root.loadingSource
+      const read = Model.parse(out.text)
+      root.now = new Date()
+      root.lastRead = read
+      root.readAt = Math.floor(new Date(read.until).getTime() / 1000)
       root.error = ""
     } catch (e) {
       root.error = String(e.message).slice(0, 300)
     }
   }
 
-  // The full Markdown recap in a terminal: the same weekly recap, or every
-  // machine read again. The command and its words go to bash as arguments.
+  // The full Markdown recap in a terminal, of the same read, from the
+  // command's cache. The command and its words go to bash as arguments.
   function openRecap() {
     root.close()
-    var args = root.source === "now" ? [] : ["latest"]
+    var from = root.readAt > 0 ? root.readAt : root.due()
     Quickshell.execDetached(["omarchy-launch-tui", "--app-id=org.omarchy.terminal",
-                             "bash", "-c", "\"$0\" \"$@\" | less", root.command].concat(args))
+                             "bash", "-c", "\"$0\" \"$@\" | less", root.command,
+                             "--reuse-from", String(from)])
   }
 
   function toggleProject(key) {
@@ -133,15 +183,20 @@ Panel {
     root.warnColor = found.orange || found.yellow || found.color3 || Color.accent
   }
 
+  // Opening shows the last read. Only with nothing to show does it read, and
+  // not again within a minute of a failure.
   onOpenedChanged: {
-    if (!root.opened || proc.running) return
-    var age = Date.now() - root.triedAt
-    // Nothing shown: fetch, but not again within a minute of a failure.
-    if (!root.view) {
-      if (age > 60000) root.load("weekly")
-    } else if (root.source === "weekly" && age > 3600000) {
-      root.load("weekly")
-    }
+    if (!root.opened) return
+    root.now = new Date()
+    if (!root.view && !proc.running && Date.now() - root.triedAt > 60000) root.load(root.due())
+  }
+
+  Timer {
+    interval: 60000
+    running: true
+    repeat: true
+    triggeredOnStart: true
+    onTriggered: root.tick()
   }
 
   implicitWidth: button.implicitWidth
@@ -179,7 +234,11 @@ Panel {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: root.glyphCommit
+    // The count beside the glyph, on a horizontal bar; a vertical one has no
+    // room, and the tooltip says it.
+    readonly property bool counted: root.count > 0 && !vertical
+    text: counted ? root.glyphCommit + " " + root.count : root.glyphCommit
+    slotSize: Style.bar.iconSlot * (counted ? 1.1 + 0.5 * String(root.count).length : 1)
     tooltipText: root.opened ? "" : root.tooltipText
     onPressed: function(b) {
       if (b === Qt.RightButton) root.openRecap()
@@ -390,8 +449,7 @@ Panel {
             Text {
               width: parent.width
               textFormat: Text.PlainText
-              text: (root.loading
-                ? (root.loadingSource === "now" ? "Reading every machine…" : "Fetching the weekly recap…")
+              text: (root.loading ? "Reading every machine…"
                 : root.view ? root.view.header : "").toUpperCase()
               color: root.dim(0.6)
               font.family: root.fontFamily

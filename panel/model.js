@@ -3,9 +3,8 @@
 // which commits count and what is left off; this only sorts its facts for
 // the panel and words them, the way the Markdown recap does.
 //
-//   view(data, source, now) -> {
-//     header     "Weekly recap, built Fri 15:15", "Read at 14:20" today,
-//                or "Read Tue 14:20" on another day
+//   view(data, now) -> {
+//     header     "Read at 14:20" today, or "Read Tue 14:20" on another day
 //     window     "Oct 16 to Oct 23"
 //     readLine   "Read from a and b. Not reached: c."
 //     gaps       [{machine, text}]: not reached, cut off, repos that did not read
@@ -74,11 +73,9 @@ function sameDay(a, b) {
     && a.getDate() === b.getDate()
 }
 
-function header(data, source, now) {
+function header(data, now) {
   var until = new Date(data.until)
-  if (source === "now")
-    return "Read " + (sameDay(until, now) ? "at " : DAYS[until.getDay()] + " ") + clock(until)
-  return "Weekly recap, built " + DAYS[until.getDay()] + " " + clock(until)
+  return "Read " + (sameDay(until, now) ? "at " : DAYS[until.getDay()] + " ") + clock(until)
 }
 
 function gaps(data) {
@@ -122,7 +119,7 @@ function project(p) {
   }
 }
 
-function view(data, source, now) {
+function view(data, now) {
   var read = [], missed = []
   data.machines.forEach(function(m) { (m.reached ? read : missed).push(clean(m.label)) })
   var readLine = read.length ? "Read from " + list(read) + "." : "No machine could be read."
@@ -137,7 +134,7 @@ function view(data, source, now) {
   })
 
   return {
-    header: header(data, source, now),
+    header: header(data, now),
     window: day(new Date(data.since)) + " to " + day(new Date(data.until)),
     readLine: readLine,
     gaps: gaps(data),

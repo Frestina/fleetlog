@@ -31,9 +31,9 @@ class PanelTest(FleetTest):
             cli.main(["--since", SINCE, "--json"])
         return out.getvalue()
 
-    def model(self, text: str, source: str = "now", now: float | None = None) -> dict:
+    def model(self, text: str, now: float | None = None) -> dict:
         now = datetime.datetime.now(datetime.timezone.utc).timestamp() if now is None else now
-        done = subprocess.run([NODE, str(RUNNER), source, str(int(now * 1000))], input=text,
+        done = subprocess.run([NODE, str(RUNNER), str(int(now * 1000))], input=text,
                               capture_output=True, text=True, check=True,
                               env={**os.environ, "TZ": "UTC"})
         return json.loads(done.stdout)
@@ -78,17 +78,14 @@ class PanelTest(FleetTest):
         self.assertTrue(gap["text"].startswith("not reached: ssh: connect to host crate"), gap)
         self.assertEqual(view["readLine"], "Read from anvil and bench. Not reached: crate.")
 
-    def test_the_header_says_where_the_facts_came_from(self):
+    def test_the_header_says_when_the_machines_were_read(self):
         text = self.recap()
         until = datetime.datetime.fromisoformat(json.loads(text)["until"]).astimezone(
             datetime.timezone.utc)
         now = until.timestamp()
-        self.assertEqual(self.model(text, "now", now)["view"]["header"],
-                         f"Read at {until:%H:%M}")
-        self.assertEqual(self.model(text, "now", now + 24 * 3600)["view"]["header"],
+        self.assertEqual(self.model(text, now)["view"]["header"], f"Read at {until:%H:%M}")
+        self.assertEqual(self.model(text, now + 24 * 3600)["view"]["header"],
                          f"Read {until:%a %H:%M}")
-        self.assertEqual(self.model(text, "weekly", now)["view"]["header"],
-                         f"Weekly recap, built {until:%a %H:%M}")
 
     def test_text_from_machines_loses_control_characters_and_stays_literal(self):
         repo = self.fleet.repo("anvil", "Projects/tool")

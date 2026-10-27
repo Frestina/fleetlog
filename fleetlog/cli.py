@@ -1,6 +1,7 @@
 """The git-fleetlog command.
 
     git fleetlog [--since <when>] [--json]   the recap, read from every machine now
+    git fleetlog --reuse-from <unix time>    the recap, sharing one read (the bar icon)
     git fleetlog status [--json]             only where each project was left
     git fleetlog latest [--json]             the last weekly recap, from the main machine
     git fleetlog weekly [--retry]            build the weekly recap (its timer runs this)
@@ -18,7 +19,7 @@ import re
 import sys
 import time
 
-from fleetlog import collect, config, notify, recap, timers, weekly
+from fleetlog import cache, collect, config, notify, recap, timers, weekly
 
 EXIT_OK, EXIT_GAPS, EXIT_ERROR = 0, 1, 2
 _AGO = re.compile(r"(\d+)([dw])")
@@ -46,6 +47,9 @@ def parser() -> argparse.ArgumentParser:
     out.add_argument("--since", type=since, metavar="WHEN",
                      help="from a date (2026-10-01) or a time ago (10d, 2w); default 7d")
     out.add_argument("--json", action="store_true", help="exact data instead of Markdown")
+    out.add_argument("--reuse-from", type=int, metavar="UNIXTIME",
+                     help="the last 7 days from the last read if it started at or after "
+                          "this time, else read now and keep it (for the bar icon)")
     sub = out.add_subparsers(dest="cmd", metavar="COMMAND")
     for name, what in (("status", "only where each project was left"),
                        ("latest", "the last weekly recap, from the main machine")):
@@ -65,7 +69,10 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = parser().parse_args(argv)
+    p = parser()
+    args = p.parse_args(argv)
+    if args.reuse_from is not None and (args.cmd is not None or args.since is not None):
+        p.error("--reuse-from reads the last 7 days, with no command and no --since")
     try:
         if args.cmd == "timers":
             if args.action == "install":
@@ -78,6 +85,9 @@ def main(argv: list[str] | None = None) -> int:
             return notify.run(cfg)
         if args.cmd == "latest":
             data = weekly.fetch(cfg)
+            return show(cfg, data["facts"], data["since"], data["until"], args.json)
+        if args.reuse_from is not None:
+            data = cache.read(cfg, args.reuse_from)
             return show(cfg, data["facts"], data["since"], data["until"], args.json)
         until = int(time.time())
         if args.cmd == "status":
