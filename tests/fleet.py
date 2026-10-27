@@ -99,6 +99,14 @@ class FakeFleet:
     def back(self, name: str) -> None:
         (self.root / "off" / name).rename(self.home(name))
 
+    def offline(self, on: bool = True) -> None:
+        """This machine has no network: ssh reaches no target."""
+        flag = self.root / "offline"
+        if on:
+            flag.touch()
+        else:
+            flag.unlink()
+
     def calls(self, name: str = "ssh") -> list[list[str]]:
         out = []
         for f in sorted((self.root / "calls").glob(f"{name}.*"), key=os.path.getmtime):

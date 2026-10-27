@@ -17,8 +17,14 @@ notify-send still running after a few seconds means it is up. One that exits
 at once with an error (no notification daemon, a locked session) leaves the
 recap unshown, and the next hour tries again.
 
+Once the recap due last Friday has been shown here, it asks the main machine
+nothing until the next one is due. The timer also runs on a resume after
+:50 passed in sleep, whatever the day, and that run has nothing to show.
+
 When the main machine cannot be reached, it says so once a day, and keeps
-trying every hour. It never collects on its own instead.
+trying every hour. When this machine is offline, as just after a resume
+before the network is back, it says nothing and tries again the next hour.
+It never collects on its own instead.
 """
 
 import datetime
@@ -28,7 +34,7 @@ import subprocess
 import sys
 import time
 
-from fleetlog import recap, weekly
+from fleetlog import recap, timers, weekly
 from fleetlog.config import Config
 
 APP = "git-fleetlog"
@@ -41,8 +47,14 @@ LINES = 4  # projects the notification names
 
 
 def run(cfg: Config) -> int:
+    if _shown_since(timers.last_weekly(time.time())):
+        print("this week's recap was shown here already")
+        return 0
     try:
         data = weekly.fetch(cfg)
+    except weekly.Offline as e:
+        print(f"{e}; trying again next hour", file=sys.stderr)
+        return 1
     except weekly.Unreachable as e:
         return _say_unreachable(str(e))
     except weekly.NoRecap as e:
@@ -141,6 +153,15 @@ def _say_unreachable(why: str) -> int:
                 _write(SAID, today)
     print(why, file=sys.stderr)
     return 1
+
+
+def _shown_since(due: int) -> bool:
+    """Whether the recap shown here last ends at or after due (its window
+    id is its end time)."""
+    try:
+        return int(_read(SHOWN) or "") >= due
+    except ValueError:
+        return False
 
 
 def _read(name: str) -> str | None:

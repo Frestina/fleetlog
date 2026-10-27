@@ -44,6 +44,15 @@ class Unreachable(NoRecap):
     """The main machine did not answer."""
 
 
+class Offline(Unreachable):
+    """This machine has no network, so the main machine was never asked."""
+
+
+# ssh errors that come from this machine having no network (no route at all,
+# no name server), as just after a resume, not from the main machine.
+OFFLINE = ("Network is unreachable", "Temporary failure in name resolution")
+
+
 @contextmanager
 def locked():
     d = config.state_dir()
@@ -145,7 +154,10 @@ def fetch(cfg: Config) -> dict:
         raise Unreachable(f"{main.label} gave no answer in {TIMEOUT}s") from None
     err = done.stderr.decode(errors="replace").strip().splitlines()
     if done.returncode == 255:
-        raise Unreachable(f"cannot reach {main.label}: {err[-1] if err else 'ssh exited 255'}")
+        last = err[-1] if err else "ssh exited 255"
+        if any(o in last for o in OFFLINE):
+            raise Offline(f"cannot reach {main.label}, this machine is offline: {last}")
+        raise Unreachable(f"cannot reach {main.label}: {last}")
     if done.returncode != 0:
         if any("No such file" in line for line in err):
             raise NoRecap(f"no weekly recap has been built on {main.label} yet")

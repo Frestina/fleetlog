@@ -82,7 +82,14 @@ class WeeklyTest(FleetTest):
     def test_fetch_from_an_unreachable_main_machine(self):
         self.fleet.config("[main]\nmachine = bench\n")
         self.fleet.unreachable("bench")
-        with self.assertRaises(weekly.Unreachable):
+        with self.assertRaises(weekly.Unreachable) as caught:
+            weekly.fetch(self.fleet.load())
+        self.assertNotIsInstance(caught.exception, weekly.Offline)
+
+    def test_fetch_while_this_machine_is_offline(self):
+        self.fleet.config("[main]\nmachine = bench\n")
+        self.fleet.offline()
+        with self.assertRaisesRegex(weekly.Offline, "this machine is offline"):
             weekly.fetch(self.fleet.load())
 
     def test_a_recap_that_does_not_read(self):

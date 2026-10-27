@@ -2,7 +2,8 @@
 # A fake ssh for tests. It records its arguments, one file per call under
 # $FL_FAKE/calls, then runs the remote command here, as real ssh would on the
 # far side, with HOME set to the machine's fixture home, $FL_FAKE/homes/<target>.
-# A target with no fixture home is unreachable.
+# A target with no fixture home is unreachable. While $FL_FAKE/offline is
+# there, this machine has no network and no target is reached.
 set -uo pipefail
 
 fake=${FL_FAKE:?fake ssh: FL_FAKE is not set}
@@ -19,6 +20,10 @@ fi
 target=$2
 shift 2
 
+if [[ -e $fake/offline ]]; then
+  echo "ssh: connect to host $target port 22: Network is unreachable" >&2
+  exit 255
+fi
 home=$fake/homes/$target
 if [[ ! -d $home ]]; then
   echo "ssh: connect to host $target port 22: No route to host" >&2

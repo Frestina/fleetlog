@@ -205,8 +205,15 @@ it. The weekly run must not be noticed there:
 - A recap counts as shown once the notification is up, not when it is
   clicked. When notify-send fails (no notification daemon, a locked session),
   the next hour tries again.
+- Once the recap due last Friday at 15:15 has been shown on a viewer, it asks
+  the main machine nothing until the next one is due. A timer whose time
+  passed while the machine slept runs on resume, on any day, and that run
+  has nothing to show.
 - If the main machine cannot be reached, a notification says so, once a day,
   and it keeps trying. It does not quietly read the machines itself instead.
+  When the viewer itself is offline (no network, as just after a resume) it
+  says nothing and tries again the next hour: that is not the main machine
+  being down.
 
 ## What must never happen
 

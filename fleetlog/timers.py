@@ -15,6 +15,7 @@ itself.
 Every unit starts with MARK, so remove takes away only what install wrote.
 """
 
+import datetime
 import os
 import string
 import subprocess
@@ -43,11 +44,14 @@ class Timer:
     service: tuple[str, ...]
 
 
+DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+WEEKLY = (4, 15, 15)  # Friday 15:15, local time: weekday, hour, minute
 QUIET = ("Nice=19", "CPUSchedulingPolicy=idle", "IOSchedulingClass=idle", "MemoryMax=300M",
          "TimeoutStartSec=15min")
 MAIN = (
     Timer("git-fleetlog-weekly", "the weekly recap", ("weekly",),
-          ("OnCalendar=Fri *-*-* 15:15:00", "Persistent=true"), QUIET),
+          (f"OnCalendar={DAYS[WEEKLY[0]]} *-*-* {WEEKLY[1]:02}:{WEEKLY[2]:02}:00",
+           "Persistent=true"), QUIET),
     Timer("git-fleetlog-retry", "the retry of machines not reached", ("weekly", "--retry"),
           ("OnCalendar=Fri *-*-* 16..23:45:00", "OnCalendar=Sat,Sun *-*-* *:45:00"), QUIET),
 )
@@ -59,6 +63,17 @@ VIEWER = (
           ("OnCalendar=Fri..Sun *-*-* *:50:00",), ("Nice=10", "TimeoutStartSec=infinity")),
 )
 ALL = MAIN + VIEWER
+
+
+def last_weekly(now: float) -> int:
+    """When the weekly recap was last due by now: the latest Friday 15:15."""
+    day, hour, minute = WEEKLY
+    t = datetime.datetime.fromtimestamp(now)
+    due = t.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    due -= datetime.timedelta(days=(t.weekday() - day) % 7)
+    if due > t:
+        due -= datetime.timedelta(days=7)
+    return int(due.timestamp())
 
 
 def unit_dir() -> Path:
