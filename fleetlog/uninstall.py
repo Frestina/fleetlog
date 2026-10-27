@@ -1,0 +1,168 @@
+"""`git fleetlog uninstall`: what git-fleetlog and its setup added on this
+machine, removed after asking. The panel's Uninstall button runs it in a
+terminal.
+
+It lists what is there: the timers install wrote, git-fleetlog's config,
+cache and state folders, and the ~/.local/bin/git-fleetlog link when it
+points at this command. Then it asks whether to remove the plugin and all of
+that, or only the plugin. The plugin goes first, so a running panel cannot
+write its cache again. A folder that is a link, into dotfiles say, loses only
+the link.
+
+It never touches what it did not write: Fleetwatch's hosts file, which
+Fleetwatch shares, or a Hyprland binding the user added for the panel, which
+it only points out. A checkout that is not the plugin, as on a machine
+without Omarchy, stays where it is: the user deletes the folder.
+"""
+
+import os
+import shutil
+import subprocess
+import sys
+from collections.abc import Callable
+from pathlib import Path
+
+from fleetlog import cache, config, timers
+
+PLUGIN_ID = "io.github.frestina.fleetlog"
+COMMAND = Path(__file__).resolve().parent.parent / "bin" / "git-fleetlog"
+
+Plan = list[tuple[str, Callable[[], object]]]
+
+
+def plugin_dir() -> Path:
+    return Path.home() / ".config" / "omarchy" / "plugins" / PLUGIN_ID
+
+
+def link_path() -> Path:
+    return Path.home() / ".local" / "bin" / "git-fleetlog"
+
+
+def tilde(path: Path) -> str:
+    home = str(Path.home())
+    return "~" + str(path)[len(home):] if str(path).startswith(home + "/") else str(path)
+
+
+def our_link(link: Path) -> bool:
+    """Whether link is a symlink to this command, or to the plugin's."""
+    if not link.is_symlink():
+        return False
+    target = os.path.normpath(link.parent / os.readlink(link))
+    return target in (str(COMMAND), str(plugin_dir() / "bin" / "git-fleetlog"))
+
+
+def plan() -> Plan:
+    """What git-fleetlog and its setup left outside the plugin folder, as
+    (description, action) pairs."""
+    out: Plan = []
+    if units := timers.installed():
+        names = sorted({n.rsplit(".", 1)[0] for n in units})
+        out.append((f"the timers {', '.join(names)}", timers.remove))
+    for folder in (config.config_path().parent, cache.cache_dir(), config.state_dir()):
+        if folder.is_symlink():
+            out.append((f"{tilde(folder)}, only the link to {tilde(folder.resolve())}",
+                        folder.unlink))
+        elif folder.exists():
+            out.append((f"{tilde(folder)}/", lambda folder=folder: shutil.rmtree(folder)))
+    link = link_path()
+    if our_link(link):
+        out.append((f"{tilde(link)}, the link to the git-fleetlog command", link.unlink))
+    return out
+
+
+def bindings() -> list[str]:
+    """Lines in the Hyprland config that name the plugin, as file:line."""
+    out = []
+    for path in sorted((config.config_home() / "hypr").glob("*.lua")):
+        try:
+            lines = path.read_text().splitlines()
+        except (OSError, UnicodeDecodeError):
+            continue
+        out += [f"{tilde(path)}:{n}" for n, line in enumerate(lines, 1)
+                if PLUGIN_ID in line and not line.lstrip().startswith("--")]
+    return out
+
+
+def ask(options: list[str]) -> str | None:
+    """One of options, or None when cancelled."""
+    if shutil.which("gum"):
+        done = subprocess.run(["gum", "choose", *options], stdout=subprocess.PIPE, text=True)
+        answer = done.stdout.strip()
+        return answer if done.returncode == 0 and answer else None
+    for n, option in enumerate(options, 1):
+        print(f"  {n}) {option}")
+    try:
+        answer = input("> ").strip()
+    except EOFError:
+        return None
+    return options[int(answer) - 1] if answer.isdigit() and 0 < int(answer) <= len(options) \
+        else None
+
+
+def interactive() -> bool:
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def run() -> int:
+    if not interactive():
+        print("git-fleetlog: uninstall asks before removing anything; run it in a terminal",
+              file=sys.stderr)
+        return 2
+    steps = plan()
+    plugin = plugin_dir()
+    has_plugin = plugin.exists() or plugin.is_symlink()
+    everything = "Remove the plugin and all of this" if has_plugin else "Remove all of this"
+    plugin_only = "Remove only the plugin"
+    print("Uninstall git-fleetlog\n")
+    if not steps and not has_plugin:
+        print("Nothing to remove.")
+        return 0
+    if steps:
+        print("Besides the plugin, git-fleetlog and its setup added:\n" if has_plugin
+              else "git-fleetlog and its setup added:\n")
+        for description, _ in steps:
+            print(f"  - {description}")
+        print()
+        choice = ask([everything, plugin_only, "Cancel"] if has_plugin
+                     else [everything, "Cancel"])
+    else:
+        print("Nothing besides the plugin needs removing.\n")
+        choice = ask([plugin_only, "Cancel"])
+    if choice not in (everything, plugin_only):
+        print("Nothing removed.")
+        return 1
+    # The plugin goes first: a running panel would write its cache again.
+    if has_plugin and subprocess.run(["omarchy-plugin-remove", PLUGIN_ID, "--yes"]).returncode:
+        print("git-fleetlog: the plugin was not removed, so nothing else was either",
+              file=sys.stderr)
+        return 1
+    status = 0
+    if choice == everything:
+        for description, action in steps:
+            try:
+                action()
+                print(f"Removed {description}.")
+            except (OSError, timers.TimersError) as e:
+                print(f"git-fleetlog: could not remove {description}: "
+                      f"{getattr(e, 'strerror', None) or e}", file=sys.stderr)
+                status = 1
+    notes(has_plugin, kept_timers=choice == plugin_only and bool(timers.installed()))
+    return status
+
+
+def notes(had_plugin: bool, kept_timers: bool) -> None:
+    """What is left for the user to remove, or to keep."""
+    print()
+    if kept_timers and str(COMMAND).startswith(str(plugin_dir()) + "/"):
+        print("The timers stay, but they ran the plugin's command, which is gone now. "
+              "Install them again from a clone, or remove them with: systemctl --user "
+              "disable --now git-fleetlog-weekly.timer git-fleetlog-retry.timer "
+              "git-fleetlog-notify.timer")
+    if config.fleetwatch_hosts_path().exists():
+        print(f"{tilde(config.fleetwatch_hosts_path())} is Fleetwatch's, so it stays.")
+    if found := bindings():
+        print(f"The panel's keybinding is yours to remove: {', '.join(found)}.")
+    if not had_plugin:
+        print(f"The command itself is in {tilde(COMMAND.parent.parent)}; delete that folder "
+              "when you no longer want it.")
+    print("This was this machine only; git-fleetlog on your other machines is untouched.")

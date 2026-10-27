@@ -4,6 +4,7 @@
     git fleetlog --reuse-from <unix time>    the recap, sharing one read (the bar icon)
     git fleetlog status [--json]             only where each project was left
     git fleetlog latest [--json]             the last weekly recap, from the main machine
+    git fleetlog machines                    open the list of machines, with this one when new
     git fleetlog config                      open the config, with a guide when it is new
     git fleetlog ask-agent [-- MACHINE FOLDER [LEFT...]]
                                              your coding agent, on the setup or on one repo
@@ -11,6 +12,7 @@
     git fleetlog notify                      the weekly notification (its timer runs this)
     git fleetlog timers install main|viewer
     git fleetlog timers remove | status
+    git fleetlog uninstall                   remove git-fleetlog from this machine, after asking
 
 Exit codes: 0 everything was read, 1 a machine was not reached or not fully
 read, 2 an error.
@@ -22,8 +24,10 @@ import os
 import re
 import sys
 import time
+from collections.abc import Callable
+from pathlib import Path
 
-from fleetlog import agent, cache, collect, config, notify, recap, timers, weekly
+from fleetlog import agent, cache, collect, config, notify, recap, timers, uninstall, weekly
 
 EXIT_OK, EXIT_GAPS, EXIT_ERROR = 0, 1, 2
 _AGO = re.compile(r"(\d+)([dw])")
@@ -59,6 +63,11 @@ def parser() -> argparse.ArgumentParser:
                        ("latest", "the last weekly recap, from the main machine")):
         p = sub.add_parser(name, help=what, description=what)
         p.add_argument("--json", action="store_true", help="exact data instead of Markdown")
+    sub.add_parser("machines", help="open the list of machines in the editor",
+                   description="Opens Fleetwatch's hosts file, ~/.config/fleetwatch/hosts, "
+                               "when it is there, and otherwise git-fleetlog's own, "
+                               "~/.config/git-fleetlog/hosts, written first with this machine "
+                               "in it. One machine a line: <label> <ssh target> [<hostname>].")
     sub.add_parser("config", help="open the config in the editor, with a guide when it is new",
                    description="Opens ~/.config/git-fleetlog/config in Omarchy's editor, or "
                                "$VISUAL or $EDITOR, after writing a commented guide there when "
@@ -82,6 +91,11 @@ def parser() -> argparse.ArgumentParser:
     i.add_argument("role", choices=("main", "viewer"))
     tsub.add_parser("remove", help="remove every timer install wrote")
     tsub.add_parser("status", help="show the installed timers")
+    sub.add_parser("uninstall", help="remove git-fleetlog from this machine, after asking",
+                   description="Lists what git-fleetlog and its setup added on this machine "
+                               "(timers, config, cache, state, the ~/.local/bin link), asks, "
+                               "then removes the Omarchy plugin and, if you say so, all of "
+                               "that. Fleetwatch's hosts file stays.")
     return out
 
 
@@ -93,7 +107,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         # Before the config is read, so one that does not read can be fixed.
         if args.cmd == "config":
-            return edit()
+            return edit(config.ensure)
+        if args.cmd == "machines":
+            return edit(config.ensure_hosts)
+        if args.cmd == "uninstall":
+            return uninstall.run()
         if args.cmd == "timers":
             if args.action == "install":
                 return timers.install(args.role)
@@ -129,11 +147,12 @@ def main(argv: list[str] | None = None) -> int:
         return 130
 
 
-def edit() -> int:
+def edit(ensure: Callable[[], Path]) -> int:
+    """Open the file ensure gives, after it writes one when there is none."""
     try:
-        path = config.ensure()
+        path = ensure()
     except OSError as e:
-        print(f"git-fleetlog: cannot write {config.config_path()}: {e.strerror}", file=sys.stderr)
+        print(f"git-fleetlog: cannot write {e.filename}: {e.strerror}", file=sys.stderr)
         return EXIT_ERROR
     cmd = config.editor_command(path, sys.stdin.isatty())
     try:

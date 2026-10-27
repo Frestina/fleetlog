@@ -43,6 +43,11 @@ class PanelTest(FleetTest):
         self.assertNotIn("error", out)
         return out["view"]
 
+    def test_only_this_machine_until_others_are_listed(self):
+        self.assertFalse(self.view()["onlyThisMachine"])
+        self.fleet.hosts("anvil local\n")
+        self.assertTrue(self.view()["onlyThisMachine"])
+
     def test_projects_are_sorted_by_what_needs_doing(self):
         tool = self.fleet.repo("anvil", "Projects/tool")
         self.fleet.commit(tool, "Draw beds")

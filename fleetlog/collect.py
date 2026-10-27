@@ -8,7 +8,7 @@ sessions, and an unattended run must never raise a key prompt.
 
 What comes back is a machine's facts, a plain dict that json can store:
 
-    label, reached, complete, error, hostname, read_at, home,
+    label, local, reached, complete, error, hostname, read_at, home,
     missing (folders not there), problems (repos that did not read),
     repos: path, root, email, synced, remotes, head, branches, commits,
            made, changed, untracked, stashes
@@ -57,11 +57,13 @@ def command(machine: Machine, since: int, until: int, folders: Sequence[str]) ->
 
 def collect_all(cfg: Config, since: int, until: int,
                 machines: Sequence[Machine] | None = None) -> list[dict]:
-    """Every machine's facts, in the config's order, read at the same time."""
+    """Every machine's facts, in the config's order, read at the same time,
+    each saying whether it is the machine they were read from."""
     machines = cfg.machines if machines is None else machines
     with ThreadPoolExecutor(max_workers=max(1, len(machines))) as pool:
         return list(pool.map(
-            lambda m: collect(m, since, until, cfg.folders_for(m.label)), machines))
+            lambda m: {**collect(m, since, until, cfg.folders_for(m.label)), "local": m.local},
+            machines))
 
 
 def collect(machine: Machine, since: int, until: int, folders: Sequence[str]) -> dict:

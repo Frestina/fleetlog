@@ -20,7 +20,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from fleetlog.config import Config, config_path
+from fleetlog.config import Config, config_path, hosts_path
 from fleetlog.recap import clean
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -81,8 +81,8 @@ def setup() -> list[str]:
         return PICK
     return ["omarchy-agent-prompt",
             f"Help me with git-fleetlog, which shows my commits from every machine and where "
-            f"I left each project: follow {SETUP}. Its command is {COMMAND}, and its config "
-            f"is {config_path()}."]
+            f"I left each project: follow {SETUP}. Its command is {COMMAND}, its list of "
+            f"machines is {hosts_path()}, and its config is {config_path()}."]
 
 
 def repo(cfg: Config, label: str, path: str, left: list[str]) -> tuple[list[str], str | None]:
@@ -90,7 +90,7 @@ def repo(cfg: Config, label: str, path: str, left: list[str]) -> tuple[list[str]
     and the folder to start it from (None for a machine over ssh)."""
     machine = cfg.machine(label)
     if machine is None:
-        raise AgentError(f"no machine {label!r} in the config or the Fleetwatch hosts file")
+        raise AgentError(f"no machine {label!r} in the hosts files or the config")
     if not path.startswith("/"):
         raise AgentError(f"{as_data(path)} is not a full path")
     try:

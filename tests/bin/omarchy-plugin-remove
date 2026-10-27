@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# A fake omarchy-plugin-remove: records the call, then removes the plugin's
+# folder, or only the link to it, as the real one does. Fails, removing
+# nothing, when $FL_FAKE/plugin-remove-fails is there.
+set -u
+"$(dirname "$0")/record" omarchy-plugin-remove "$@"
+[[ -e $FL_FAKE/plugin-remove-fails ]] && exit 1
+id=${1:?fake: no plugin id}
+target=$HOME/.config/omarchy/plugins/$id
+if [[ -L $target ]]; then
+  rm -f -- "$target"
+else
+  rm -rf -- "$target"
+fi

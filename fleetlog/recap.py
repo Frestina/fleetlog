@@ -296,8 +296,9 @@ def as_json(facts: Sequence[dict], projects: Sequence[Project], since: int, unti
         "since": None if status else _stamp(since),
         "until": _stamp(until),
         "machines": [{
-            "label": m["label"], "reached": bool(m.get("reached")),
-            "complete": bool(m.get("complete")), "error": m.get("error"),
+            "label": m["label"], "local": bool(m.get("local")),
+            "reached": bool(m.get("reached")), "complete": bool(m.get("complete")),
+            "error": m.get("error"),
             "read_at": _stamp(m["read_at"]) if m.get("read_at") else None,
             "tries": m.get("tries", 1),
             "problems": m.get("problems", []), "missing_folders": m.get("missing", []),

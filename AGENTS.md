@@ -17,9 +17,13 @@ and change it in the same commit when a decision changes.
 - `fleetlog/cache.py`: one read shared by the bar icons (`--reuse-from`).
 - `fleetlog/agent.py`, `docs/AGENT_*.md`: `ask-agent`, the panel's agent
   buttons, and the guides the coding agent is started with.
-- `manifest.json`, `panel/`: the Omarchy shell plugin. `Fleetlog.qml` is the
-  bar icon and its panel; `model.js` turns `--json` into what the panel
-  shows, and is where its logic goes, so it can be tested.
+- `fleetlog/uninstall.py`: `uninstall`, the panel's Uninstall button.
+- `manifest.json`, `panel/`: the Omarchy shell plugin, installed with
+  `omarchy plugin add` like Fleetwatch. `Fleetlog.qml` is the bar icon and
+  its panel, whose footer matches Fleetwatch's; `model.js` turns `--json`
+  into what the panel shows, and is where its logic goes, so it can be
+  tested. The command works on its own, in a terminal and without Omarchy
+  or Fleetwatch.
 - `tests/`: `./tests/run` runs everything. `tests/fleet.py` builds a fake
   fleet of throwaway homes, and `tests/bin` holds the fakes (ssh,
   notify-send, systemctl and more) so no test touches a real machine.

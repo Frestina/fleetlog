@@ -19,11 +19,14 @@ import "model.js" as Model
 // anything; refresh reads every machine now, once for all monitors.
 //
 // left = the panel · right = the full recap in a terminal.
-// In the panel: r refresh, t the full recap, s settings, a ask agent, j/k or
-// arrows scroll, Esc close. Settings opens the config (`git-fleetlog config`),
-// and saving it reads every machine again. Ask agent starts the default
-// coding agent on the setup; the agent button by a project's left-off lines
-// starts it in that repo, on the machine they are on (`git-fleetlog
+// In the panel: r refresh, t the full recap, m machines, s settings, a ask
+// agent, j/k or arrows scroll, Esc close. The footer is Fleetwatch's: Machines
+// opens the list of machines (`git-fleetlog machines`), Settings the config
+// (`git-fleetlog config`), and saving either reads every machine again.
+// Uninstall asks in a terminal what to remove (`git-fleetlog uninstall`). Ask
+// agent starts the default coding agent on the setup, as "Set up with agent"
+// while only this machine is listed; the agent button by a project's left-off
+// lines starts it in that repo, on the machine they are on (`git-fleetlog
 // ask-agent`).
 Panel {
   id: root
@@ -33,9 +36,13 @@ Panel {
   readonly property string command: decodeURIComponent(
     Qt.resolvedUrl("../bin/git-fleetlog").toString().replace(/^file:\/\//, ""))
   readonly property string fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
-  // Matches config_path() in fleetlog/config.py.
-  readonly property string configPath: (Quickshell.env("XDG_CONFIG_HOME")
-    || Quickshell.env("HOME") + "/.config") + "/git-fleetlog/config"
+  // Match config_path(), fleetwatch_hosts_path() and own_hosts_path() in
+  // fleetlog/config.py.
+  readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
+    || Quickshell.env("HOME") + "/.config"
+  readonly property string configPath: root.configHome + "/git-fleetlog/config"
+  readonly property string fleetwatchHostsPath: root.configHome + "/fleetwatch/hosts"
+  readonly property string ownHostsPath: root.configHome + "/git-fleetlog/hosts"
 
   readonly property string glyphCommit: String.fromCodePoint(0xF0718)
   readonly property string glyphRefresh: String.fromCodePoint(0xF0450)
@@ -46,6 +53,8 @@ Panel {
   readonly property string glyphCheck: String.fromCodePoint(0xF012C)
   readonly property string glyphSettings: String.fromCodePoint(0xF0493)
   readonly property string glyphAgent: String.fromCodePoint(0xF06A9)
+  readonly property string glyphMachines: String.fromCodePoint(0xF03EB)
+  readonly property string glyphUninstall: String.fromCodePoint(0xF01B4)
 
   // The last read (parsed --json), what the panel shows of it (Model.view,
   // worded again on each open, so "Read at" turns into a day when it should),
@@ -63,15 +72,15 @@ Panel {
   // A refresh that came mid-read (Unix seconds), asked for once it ends.
   property real pendingFrom: 0
   readonly property int count: root.view ? root.view.attentionCount : 0
+  readonly property bool onlyThisMachine: root.error === "" && !!root.view
+    && root.view.onlyThisMachine
   // Per run: a binary that fails to start only flips proc.running, with no
   // exited or stream signals, so finish() keys off running and these.
   property bool procStarted: false
   property int procExitCode: 0
 
-  // When the config was saved (Unix seconds), and whether it was there to
-  // watch; see configSaved().
+  // When the config or a hosts file was saved (Unix seconds); see fileSaved().
   property real savedAt: 0
-  property bool configFound: false
 
   // Projects opened to show their commits, by key; kept across reads.
   property var openProjects: ({})
@@ -172,12 +181,21 @@ Panel {
                              "--reuse-from", String(from)])
   }
 
-  // The config in Omarchy's editor; the command writes a commented guide
-  // there first when there is none.
-  function editConfig() {
+  // The config ("config") or the list of machines ("machines") in Omarchy's
+  // editor; the command writes one with a commented guide first when there
+  // is none.
+  function edit(what) {
     root.close()
-    Quickshell.execDetached([root.command, "config"])
-    configRetry.restart()
+    Quickshell.execDetached([root.command, what])
+    watchRetry.restart()
+  }
+
+  // In a floating terminal, since it asks first. Omarchy's launcher runs its
+  // arguments as one bash line, so the command's path is quoted for it.
+  function uninstall() {
+    root.close()
+    Quickshell.execDetached(["omarchy-launch-floating-terminal-with-presentation",
+                             Util.shellQuote(root.command) + " uninstall"])
   }
 
   // The default coding agent: on the setup with no `ask`, else in the repo
@@ -190,7 +208,7 @@ Panel {
 
   // Every monitor's icon sees the save, at the same moment; reading since
   // then lets them share one read once the editor is done writing.
-  function configSaved() {
+  function fileSaved() {
     if (!saveSettle.running) root.savedAt = Math.floor(Date.now() / 1000)
     saveSettle.restart()
   }
@@ -252,22 +270,30 @@ Panel {
     stderr: StdioCollector { id: errOut; waitForEnd: true }
   }
 
-  // A watch takes on a missing file only when its folder is there, so once
-  // the command has had time to write the config, watch it again.
-  FileView {
-    id: configFile
-    path: root.configPath
+  // The config and both hosts files, Fleetwatch's and git-fleetlog's own:
+  // saving any of them reads every machine again. A watch takes on a missing
+  // file only when its folder is there, so once the command has had time to
+  // write one, the missing ones are watched again.
+  component WatchedFile: FileView {
+    property bool found: false
     watchChanges: true
     printErrors: false
-    onLoaded: root.configFound = true
-    onLoadFailed: root.configFound = false
-    onFileChanged: root.configSaved()
+    onLoaded: found = true
+    onLoadFailed: found = false
   }
 
+  // An inline component does not see this file's ids, so each one says
+  // what a save does.
+  WatchedFile { id: configFile; path: root.configPath; onFileChanged: root.fileSaved() }
+  WatchedFile { id: fleetwatchHosts; path: root.fleetwatchHostsPath; onFileChanged: root.fileSaved() }
+  WatchedFile { id: ownHosts; path: root.ownHostsPath; onFileChanged: root.fileSaved() }
+
   Timer {
-    id: configRetry
+    id: watchRetry
     interval: 2000
-    onTriggered: if (!root.configFound) configFile.reload()
+    onTriggered: [configFile, fleetwatchHosts, ownHosts].forEach(function(f) {
+      if (!f.found) f.reload()
+    })
   }
 
   // Editors save in several steps; read once they are done.
@@ -488,7 +514,8 @@ Panel {
       onTextKey: function(t) {
         if (t === "r") root.refresh()
         else if (t === "t") root.openRecap()
-        else if (t === "s") root.editConfig()
+        else if (t === "m") root.edit("machines")
+        else if (t === "s") root.edit("config")
         else if (t === "a") root.askAgent(null)
       }
 
@@ -502,6 +529,7 @@ Panel {
         // Everything but the list, so the list can take the height left.
         readonly property real chromeHeight: hero.implicitHeight + topRule.height
           + bottomRule.height + footer.implicitHeight + content.spacing * 4
+          + (onlyHere.visible ? onlyHere.implicitHeight + content.spacing : 0)
           + (errorText.visible ? errorText.implicitHeight + content.spacing : 0)
 
         // ---------- Hero: icon · title and what is shown · actions ----------
@@ -675,25 +703,39 @@ Panel {
           }
         }
 
+        Text {
+          id: onlyHere
+          visible: root.onlyThisMachine
+          width: parent.width
+          textFormat: Text.PlainText
+          text: "Only this machine is listed so far. Add your others to the list, or let your coding agent find them with you."
+          wrapMode: Text.Wrap
+          horizontalAlignment: Text.AlignHCenter
+          color: root.dim(0.6)
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.bodySmall
+        }
+
         PanelSeparator { id: bottomRule; foreground: root.barForeground }
 
-        // ---------- Footer: ask agent · settings, then the keys on a line of their own ----------
+        // ---------- Footer, as Fleetwatch's: the two files, then uninstall · agent setup, each split left and right; then the keys ----------
         Column {
           id: footer
           width: parent.width
-          spacing: Style.space(6)
+          spacing: Style.space(12)
 
           RowLayout {
             width: parent.width
+            spacing: Style.space(4)
 
             Button {
-              iconText: root.glyphAgent
-              text: "Ask agent"
-              tooltipText: "Your default coding agent goes through the setup with you, or explains what the panel shows (a)"
+              iconText: root.glyphMachines
+              text: "Machines"
+              tooltipText: "Edit the list of machines (m)"
               foreground: root.barForeground
               fontFamily: root.fontFamily
               fontSize: Style.font.bodySmall
-              onClicked: root.askAgent(null)
+              onClicked: root.edit("machines")
             }
 
             Item { Layout.fillWidth: true }
@@ -701,11 +743,43 @@ Panel {
             Button {
               iconText: root.glyphSettings
               text: "Settings"
-              tooltipText: "Include or exclude projects, folders and machines (s)"
+              tooltipText: "Edit the optional settings: folders, excluded projects, the main machine (s)"
               foreground: root.barForeground
               fontFamily: root.fontFamily
               fontSize: Style.font.bodySmall
-              onClicked: root.editConfig()
+              onClicked: root.edit("config")
+            }
+          }
+
+          RowLayout {
+            width: parent.width
+            spacing: Style.space(4)
+
+            // Asks in a terminal what to remove before it removes anything.
+            Button {
+              iconText: root.glyphUninstall
+              text: "Uninstall"
+              tooltipText: "Asks what to remove, then uninstalls git-fleetlog"
+              foreground: root.barForeground
+              fontFamily: root.fontFamily
+              fontSize: Style.font.bodySmall
+              onClicked: root.uninstall()
+            }
+
+            Item { Layout.fillWidth: true }
+
+            // The guide tells a first setup from a later visit by the machines.
+            Button {
+              iconText: root.glyphAgent
+              text: root.onlyThisMachine ? "Set up with agent" : "Ask agent"
+              tooltipText: root.onlyThisMachine
+                ? "Your default coding agent finds your machines and fills in the list with you (a)"
+                : "Your default coding agent goes through your setup with you, or explains what the panel shows (a)"
+              foreground: root.barForeground
+              fontFamily: root.fontFamily
+              fontSize: Style.font.bodySmall
+              bordered: root.onlyThisMachine
+              onClicked: root.askAgent(null)
             }
           }
 

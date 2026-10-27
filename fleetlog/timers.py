@@ -175,10 +175,16 @@ def install(role: str) -> int:
     return 0
 
 
-def remove() -> int:
+def installed() -> list[str]:
+    """The unit files install wrote that are there now."""
     where = unit_dir()
     names = [n for t in ALL for n in (f"{t.name}.service", f"{t.name}.timer")]
-    mine = [n for n in names if ours(where / n)]
+    return [n for n in names if ours(where / n)]
+
+
+def remove() -> int:
+    where = unit_dir()
+    mine = installed()
     if timers := [n for n in mine if n.endswith(".timer")]:
         _systemctl("disable", "--now", *timers)
     for name in mine:

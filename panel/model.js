@@ -12,6 +12,7 @@
 //     worked     [project]: commits and nothing left off, newest first
 //     quiet      projects with neither, counted
 //     attentionCount
+//     onlyThisMachine  no machine listed yet but the one the panel runs on
 //   }
 //   project: {key, name, account, count, countText, left: [{text, ask}],
 //             commits: [line], more, machines: [line]}
@@ -162,5 +163,7 @@ function view(data, now) {
     worked: worked,
     quiet: quiet,
     attentionCount: attention.length,
+    onlyThisMachine: data.machines.length > 0
+      && data.machines.every(function(m) { return m.local === true }),
   }
 }

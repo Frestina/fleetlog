@@ -1,11 +1,17 @@
 """Where git-fleetlog's machines, folders and identities come from.
 
-Machines come from the Fleetwatch hosts file and from [machines] in
-git-fleetlog's own config, in that order. A line of the hosts file is
-<label> <ssh target> [<hostname>], and the line whose hostname is this
-machine's, or whose target is "local", is this machine; in [machines], the
-one whose target is "local". When none is, this machine is added under its
-hostname. With neither file, the fleet is this machine alone.
+Machines come from the hosts files and from [machines] in git-fleetlog's
+own config, in that order. There are two hosts files, read in this order:
+Fleetwatch's, which Fleetwatch shares, and git-fleetlog's own, for someone
+without Fleetwatch; a label already listed in the first is skipped in the
+second. `git fleetlog machines` opens Fleetwatch's when it is there, and
+otherwise git-fleetlog's own, written first with this machine in it.
+
+A line of a hosts file is <label> <ssh target> [<hostname>], and the line
+whose hostname is this machine's, or whose target is "local", is this
+machine; in [machines], the one whose target is "local". When none is, this
+machine is added under its hostname. With no file at all, the fleet is this
+machine alone.
 
 The author's commits are the ones whose author email is in an [identity
 "<name>"] section of the global git config (git-whoami's), in user.email, or
@@ -67,14 +73,39 @@ TEMPLATE = """\
 # machine = homeserver
 
 [machines]
-# Machines beyond the Fleetwatch hosts file: <label> = <ssh target>, or
-# local for this machine.
+# Machines are listed in the hosts file (`git fleetlog machines`, or Machines
+# in the panel). Here, more that only git-fleetlog reads: <label> = <ssh
+# target>, or local for this machine.
 # nas = nas
 
 [identity]
 # Author emails whose commits count as yours, beyond those in your git
 # config (user.email and git-whoami's [identity "<name>"] sections).
 # emails = old-address@example.org
+"""
+
+
+HOSTS_TEMPLATE = """\
+# The machines git-fleetlog reads, one per line:
+#
+#   <label>  <ssh target>  [<hostname>]
+#
+# The target is whatever you would type after `ssh`: a Host from
+# ~/.ssh/config, user@address, or an address. The line whose hostname is this
+# machine's, or whose target is "local", is read here without ssh, so the same
+# file works when copied to your other machines. The panel reads every machine
+# again when you save.
+#
+# Fleetwatch keeps the same list in ~/.config/fleetwatch/hosts. Once that file
+# is there, git-fleetlog reads it first, and this one for what it adds.
+#
+# For example:
+#
+#   desktop     desktop.lan      desktop
+#   homeserver  me@192.0.2.10    homeserver
+
+# This machine.
+{name}  {name}  {name}
 """
 
 
@@ -131,8 +162,19 @@ def config_path() -> Path:
     return config_home() / "git-fleetlog" / "config"
 
 
-def hosts_path() -> Path:
+def fleetwatch_hosts_path() -> Path:
     return config_home() / "fleetwatch" / "hosts"
+
+
+def own_hosts_path() -> Path:
+    return config_home() / "git-fleetlog" / "hosts"
+
+
+def hosts_path() -> Path:
+    """The hosts file `git fleetlog machines` opens: Fleetwatch's when it is
+    there, else git-fleetlog's own."""
+    shared = fleetwatch_hosts_path()
+    return shared if shared.exists() else own_hosts_path()
 
 
 def load() -> Config:
@@ -184,6 +226,19 @@ def ensure() -> Path:
     return path
 
 
+def ensure_hosts() -> Path:
+    """The hosts file, git-fleetlog's own written first with this machine in
+    it when there is none."""
+    path = hosts_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(path, "x") as f:
+            f.write(HOSTS_TEMPLATE.format(name=_hostname()))
+    except FileExistsError:
+        pass
+    return path
+
+
 def editor_command(path: Path, inline: bool) -> list[str]:
     """Omarchy's default editor, in this terminal when there is one."""
     if shutil.which("omarchy-launch-editor"):
@@ -201,7 +256,15 @@ def _hostname() -> str:
 
 
 def _hosts() -> list[Machine]:
-    path = hosts_path()
+    """Fleetwatch's hosts file, then the labels git-fleetlog's own adds."""
+    out: list[Machine] = []
+    for path in (fleetwatch_hosts_path(), own_hosts_path()):
+        listed = {m.label for m in out}
+        out += [m for m in _hosts_in(path) if m.label not in listed]
+    return out
+
+
+def _hosts_in(path: Path) -> list[Machine]:
     try:
         text = path.read_text()
     except FileNotFoundError:
