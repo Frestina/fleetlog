@@ -45,7 +45,7 @@ GITCONFIG = f"""[user]
 
 class FakeFleet:
     def __init__(self, names=("anvil", "bench", "crate")):
-        self.root = Path(tempfile.mkdtemp(prefix="git-fleetlog-test-"))
+        self.root = Path(tempfile.mkdtemp(prefix="fleetlog-test-"))
         (self.root / "calls").mkdir()
         self.names = names
         for name in names:

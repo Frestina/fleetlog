@@ -9,7 +9,7 @@ from pathlib import Path
 from fleetlog import cache, cli
 from tests.fleet import FleetTest
 
-COMMAND = Path(__file__).resolve().parent.parent / "bin" / "git-fleetlog"
+COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
 
 
 class CacheTest(FleetTest):

@@ -1,4 +1,4 @@
-"""`git fleetlog config` and `machines`: the files they write, the editor they
+"""`fleetlog config` and `machines`: the files they write, the editor they
 open, and how the config and the shared hosts file read."""
 
 import re
@@ -11,7 +11,7 @@ from unittest import mock
 from fleetlog import config
 from tests.fleet import FleetTest
 
-COMMAND = Path(__file__).resolve().parent.parent / "bin" / "git-fleetlog"
+COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
 
 
 class ConfigTest(FleetTest):

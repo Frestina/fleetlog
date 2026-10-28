@@ -1,4 +1,4 @@
-"""`git fleetlog ask-agent`: the agent on the setup, or in one repo, here or
+"""`fleetlog ask-agent`: the agent on the setup, or in one repo, here or
 on another machine over ssh."""
 
 import os
@@ -8,7 +8,7 @@ from pathlib import Path
 from fleetlog import agent
 from tests.fleet import FleetTest
 
-COMMAND = Path(__file__).resolve().parent.parent / "bin" / "git-fleetlog"
+COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
 # A folder a shell would trip over, if one ever read it.
 ODD = "Projects/it's $(touch pwned) \"a\" `b`"
 

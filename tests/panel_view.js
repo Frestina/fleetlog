@@ -1,4 +1,4 @@
-// Runs panel/model.js under node as the panel does in the shell: git-fleetlog's
+// Runs panel/model.js under node as the panel does in the shell: fleetlog's
 // --json on stdin, {view} or {error} on stdout.
 //
 //   node tests/panel_view.js <now, ms since the epoch>

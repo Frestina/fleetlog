@@ -1,24 +1,27 @@
-<h1 align="center">git-fleetlog</h1>
+<h1 align="center">fleetlog</h1>
 
 <p align="center"><code>git log</code> for all your machines: your commits from every repo on every machine, grouped by project, and where you left each one. A command for any Linux terminal, and on Omarchy a panel in the bar.</p>
 
 <p align="center"><a href="https://github.com/tcballard/omarchy-badges"><img alt="Built for Omarchy: Plugin" height="20" src="https://raw.githubusercontent.com/tcballard/omarchy-badges/75975e5b5bf75e7ede3764bcd2950046f7abfe2c/badges/v1/omarchy-plugin.svg"></a></p>
 
-<p align="center"><img alt="The git-fleetlog panel for a fictional fleet: dotfiles, invoice-tool and weather-widget need attention, each with what is left off on which machine and an agent button; recipe-site and homelab are all pushed; one machine was not reached. The footer has Machines, Settings, Uninstall and Ask agent" src="preview.png" width="400"></p>
+<p align="center"><img alt="The fleetlog panel for a fictional fleet: dotfiles, invoice-tool and weather-widget need attention, each with what is left off on which machine and an agent button; recipe-site and homelab are all pushed; one machine was not reached. The footer has Machines, Settings, Uninstall and Ask agent" src="preview.png" width="400"></p>
 
 After a few days away from a project it is hard to remember where it
 stopped: which machine has the newest commits, what was never pushed, and
-what you finished that week at all. git-fleetlog reads every machine you list
+what you finished that week at all. fleetlog reads every machine you list
 and ends each project with where you left it: commits not pushed, branches
 never pushed, uncommitted changes and stashes. That is the part a GitHub
 activity page can't show.
 
 ```
-git fleetlog              # the last 7 days
-git fleetlog --since 2w   # or a date: --since 2026-10-01
-git fleetlog status       # only where each project was left
-git fleetlog --json       # exact data, for scripts and agents
+fleetlog              # the last 7 days
+fleetlog --since 2w   # or a date: --since 2026-10-01
+fleetlog status       # only where each project was left
+fleetlog --json       # exact data, for scripts and agents
 ```
+
+`git fleetlog` works too: `install.sh` also links the command as
+`git-fleetlog`, which git runs as one of its own.
 
 It reads machines over ssh, one call per machine, and changes nothing: no
 fetch, no pull, no push. The other machines need only bash and git, and no
@@ -36,7 +39,7 @@ On Omarchy, the bar icon counts the projects that need attention:
 - **Right-click:** the full recap in a terminal.
 
 The bottom of the panel opens your list of machines and the settings in your
-editor, can hand the setup to your coding agent, and uninstalls git-fleetlog.
+editor, can hand the setup to your coding agent, and uninstalls fleetlog.
 
 ## What it shows
 
@@ -87,7 +90,7 @@ On Omarchy, as a plugin, with the panel:
 omarchy plugin add https://github.com/Frestina/fleetlog --enable
 ```
 
-The `git fleetlog` command comes with it, but isn't on your `PATH` until you
+The `fleetlog` command comes with it, but isn't on your `PATH` until you
 link it (**Set up with agent** offers to do this):
 
 ```
@@ -98,7 +101,7 @@ Anywhere else, the command alone:
 
 ```
 git clone https://github.com/Frestina/fleetlog
-fleetlog/install.sh       # links git-fleetlog into ~/.local/bin
+fleetlog/install.sh       # links fleetlog and git-fleetlog into ~/.local/bin
 ```
 
 To open the panel from the keyboard too, add to
@@ -113,12 +116,12 @@ o.bind("SUPER + CTRL + G", "Fleetlog", "omarchy-shell shell toggle io.github.fre
 **Machines** at the bottom of the panel, or:
 
 ```
-git fleetlog machines     # opens the list in your editor
+fleetlog machines     # opens the list in your editor
 ```
 
 The list is `~/.config/fleet/hosts`, which every
 [Fleet](https://github.com/Frestina/fleet) tool reads, so you list your
-machines once. If you use one already, git-fleetlog reads the list that is
+machines once. If you use one already, fleetlog reads the list that is
 there; otherwise it is written with this machine in it the first time you
 open it.
 
@@ -158,7 +161,7 @@ committing, pushing or deleting anything.
 On a machine that is always on:
 
 ```
-git fleetlog timers install main
+fleetlog timers install main
 ```
 
 It builds the recap Fridays at 15:15 at the lowest priority, and tries
@@ -166,8 +169,8 @@ machines it could not reach again every hour until Sunday. On the machines
 you sit at, with `machine = "<its label>"` under `[main]` in the config:
 
 ```
-git fleetlog timers install viewer
-git fleetlog latest       # the last weekly recap, any time
+fleetlog timers install viewer
+fleetlog latest       # the last weekly recap, any time
 ```
 
 They show a notification once the week's recap is ready. It stays until you
@@ -175,7 +178,7 @@ click it away, and clicking it opens the recap in a terminal.
 
 ## Settings
 
-**Settings** at the bottom of the panel, or `git fleetlog config`, opens
+**Settings** at the bottom of the panel, or `fleetlog config`, opens
 `~/.config/fleet/log/config.toml`, with every setting commented out the first
 time. Remove the `#` in front of one to turn it on. It is TOML: text in
 double quotes, lists in brackets.
@@ -189,7 +192,7 @@ all = ["~/Projects", "~/dotfiles"]  # where repos are looked for, 4 levels deep
 homeserver = ["~/srv"]              # more on one machine
 
 [machines]
-nas = "nas"                         # a machine only git-fleetlog reads
+nas = "nas"                         # a machine only fleetlog reads
 skip = ["pi"]                       # one in the list it leaves out
 
 [exclude]
@@ -202,7 +205,7 @@ emails = ["old-address@example.org"]  # more commits that are yours
 
 ## What it runs and stores
 
-- The panel runs the plugin's own `bin/git-fleetlog` once an hour, at :20,
+- The panel runs the plugin's own `bin/fleetlog` once an hour, at :20,
   and when you refresh. Opening the panel shows that read and asks no
   machine anything.
 - That runs a read-only bash script on each machine: locally, and on the
@@ -233,12 +236,12 @@ it. For a clone, `git pull` in it.
 Choose **Uninstall** at the bottom of the panel, or run:
 
 ```
-git fleetlog uninstall
+fleetlog uninstall
 ```
 
-It lists what git-fleetlog added on this machine (its timers, its
+It lists what fleetlog added on this machine (its timers, its
 `fleet/log` folders in `~/.config`, `~/.cache` and `~/.local/state`, and the
-`~/.local/bin` link) and asks whether to remove the plugin and all of that, or
+`~/.local/bin` links) and asks whether to remove the plugin and all of that, or
 only the plugin. The list of machines, `~/.config/fleet/hosts`, goes too only
 when no other Fleet tool's folder is left beside it. A folder or file that is
 a link, into your dotfiles say, loses only the link. A keybinding you added

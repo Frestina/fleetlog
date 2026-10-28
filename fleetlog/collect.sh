@@ -3,7 +3,7 @@
 #   nice -n 19 bash -s -- <since> <until> <folder>...
 #
 # with since and until as unix times. It finds the git repos under the
-# folders and prints what git-fleetlog needs about each, one record a line,
+# folders and prints what fleetlog needs about each, one record a line,
 # fields split by the unit separator (0x1f). The first field says what the
 # record is:
 #

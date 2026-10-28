@@ -72,7 +72,7 @@ class NotifyTest(FleetTest):
         self.assertEqual(self.run_notify(), 1)
         self.assertEqual(self.run_notify(), 1)
         [call] = self.fleet.calls("notify-send")
-        self.assertIn("git-fleetlog: no weekly recap", call)
+        self.assertIn("fleetlog: no weekly recap", call)
 
     def test_nothing_is_said_while_this_machine_is_offline(self):
         self.remote_main()

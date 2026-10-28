@@ -24,23 +24,23 @@ class TimersTest(FleetTest):
         rc, out = quiet(timers.install, "main")
         self.assertEqual(rc, 0)
         files = sorted(p.name for p in timers.unit_dir().iterdir())
-        self.assertEqual(files, ["git-fleetlog-retry.service", "git-fleetlog-retry.timer",
-                                 "git-fleetlog-weekly.service", "git-fleetlog-weekly.timer"])
+        self.assertEqual(files, ["fleetlog-retry.service", "fleetlog-retry.timer",
+                                 "fleetlog-weekly.service", "fleetlog-weekly.timer"])
         calls = [c[1:] for c in self.fleet.calls("systemctl")]
         self.assertIn(["daemon-reload"], calls)
-        self.assertIn(["enable", "--now", "git-fleetlog-weekly.timer",
-                       "git-fleetlog-retry.timer"], calls)
+        self.assertIn(["enable", "--now", "fleetlog-weekly.timer",
+                       "fleetlog-retry.timer"], calls)
         self.assertNotIn("enable-linger", str(self.fleet.calls("loginctl")))
         quiet(timers.remove)
         self.assertEqual(list(timers.unit_dir().iterdir()), [])
 
     def test_install_refuses_to_overwrite_a_unit_it_did_not_write(self):
         timers.unit_dir().mkdir(parents=True)
-        (timers.unit_dir() / "git-fleetlog-notify.timer").write_text("[Timer]\n")
+        (timers.unit_dir() / "fleetlog-notify.timer").write_text("[Timer]\n")
         with self.assertRaises(timers.TimersError):
             timers.install("viewer")
         quiet(timers.remove)
-        self.assertTrue((timers.unit_dir() / "git-fleetlog-notify.timer").exists())
+        self.assertTrue((timers.unit_dir() / "fleetlog-notify.timer").exists())
 
     def test_the_schedules_keep_off_fleet_doctors_minutes(self):
         fleetdoctor = {0} | set(range(2, 60, 5))

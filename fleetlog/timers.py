@@ -25,8 +25,8 @@ from pathlib import Path
 
 from fleetlog import config
 
-MARK = "# Written by git-fleetlog timers install; git-fleetlog timers remove removes it."
-COMMAND = Path(__file__).resolve().parent.parent / "bin" / "git-fleetlog"
+MARK = "# Written by fleetlog timers install; fleetlog timers remove removes it."
+COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
 TIMEOUT = 30
 _PLAIN = frozenset(string.ascii_letters + string.digits + "/._-+,:@=~")
 
@@ -49,17 +49,17 @@ WEEKLY = (4, 15, 15)  # Friday 15:15, local time: weekday, hour, minute
 QUIET = ("Nice=19", "CPUSchedulingPolicy=idle", "IOSchedulingClass=idle", "MemoryMax=300M",
          "TimeoutStartSec=15min")
 MAIN = (
-    Timer("git-fleetlog-weekly", "the weekly recap", ("weekly",),
+    Timer("fleetlog-weekly", "the weekly recap", ("weekly",),
           (f"OnCalendar={DAYS[WEEKLY[0]]} *-*-* {WEEKLY[1]:02}:{WEEKLY[2]:02}:00",
            "Persistent=true"), QUIET),
-    Timer("git-fleetlog-retry", "the retry of machines not reached", ("weekly", "--retry"),
+    Timer("fleetlog-retry", "the retry of machines not reached", ("weekly", "--retry"),
           ("OnCalendar=Fri *-*-* 16..23:45:00", "OnCalendar=Sat,Sun *-*-* *:45:00"), QUIET),
 )
 # No time limit: the notification stays until it is clicked or dismissed, and
 # notify-send --wait has to be there to open the recap when it is clicked.
 # While it waits, the hourly timer finds the service running and starts nothing.
 VIEWER = (
-    Timer("git-fleetlog-notify", "the weekly notification", ("notify",),
+    Timer("fleetlog-notify", "the weekly notification", ("notify",),
           ("OnCalendar=Fri..Sun *-*-* *:50:00",), ("Nice=10", "TimeoutStartSec=infinity")),
 )
 ALL = MAIN + VIEWER
@@ -93,7 +93,7 @@ def units(which: tuple[Timer, ...]) -> dict[str, str]:
     out = {}
     for t in which:
         out[f"{t.name}.service"] = "\n".join([
-            MARK, "[Unit]", f"Description=git-fleetlog: {t.what}", "",
+            MARK, "[Unit]", f"Description=fleetlog: {t.what}", "",
             "[Service]", "Type=oneshot",
             "ExecStart=" + " ".join(_word(w) for w in (*cmd, *t.args)),
             *t.service,
@@ -101,7 +101,7 @@ def units(which: tuple[Timer, ...]) -> dict[str, str]:
             "SuccessExitStatus=1", "",
         ])
         out[f"{t.name}.timer"] = "\n".join([
-            MARK, "[Unit]", f"Description=git-fleetlog: {t.what}", "",
+            MARK, "[Unit]", f"Description=fleetlog: {t.what}", "",
             "[Timer]", *t.schedule, "",
             "[Install]", "WantedBy=timers.target", "",
         ])
@@ -153,7 +153,7 @@ def install(role: str) -> int:
     for name in texts:
         path = where / name
         if (path.exists() or path.is_symlink()) and not ours(path):
-            raise TimersError(f"{path} is there and git-fleetlog did not write it; "
+            raise TimersError(f"{path} is there and fleetlog did not write it; "
                               "nothing was installed")
     where.mkdir(parents=True, exist_ok=True)
     for name, text in texts.items():
@@ -193,7 +193,7 @@ def remove() -> int:
     if mine:
         _systemctl("daemon-reload")
     else:
-        print("no git-fleetlog timers installed; nothing removed")
+        print("no fleetlog timers installed; nothing removed")
     return 0
 
 
@@ -210,6 +210,6 @@ def status() -> int:
         print(f"{t.name}.timer ({t.what}): {state.get('ActiveState') or 'unknown'}, "
               f"next {state.get('NextElapseUSecRealtime') or 'not scheduled'}")
     if not found:
-        print("no git-fleetlog timers installed")
+        print("no fleetlog timers installed")
         return 1
     return 0

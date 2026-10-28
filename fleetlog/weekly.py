@@ -61,7 +61,7 @@ def locked():
         try:
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            raise Busy("another git-fleetlog run is reading the machines") from None
+            raise Busy("another fleetlog run is reading the machines") from None
         yield
 
 

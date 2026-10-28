@@ -7,12 +7,12 @@ import qs.Commons
 import qs.Ui
 import "model.js" as Model
 
-// The bar icon and panel for git-fleetlog. bin/git-fleetlog decides which
+// The bar icon and panel for fleetlog. bin/fleetlog decides which
 // commits count and what is left off, and says so in --json; this only shows
 // it, sorted by what needs doing (model.js). See SPEC.md, The panel.
 //
 // The icon reads every machine once an hour, at :20, clear of Fleet doctor's
-// runs and git-fleetlog's own timers, and shows how many projects need
+// runs and fleetlog's own timers, and shows how many projects need
 // attention. Every monitor has an icon of its own; they share one read
 // through `--reuse-from`, which the command answers from its cache once one
 // of them has read. Opening the panel shows that read and asks no machine
@@ -21,12 +21,12 @@ import "model.js" as Model
 // left = the panel · right = the full recap in a terminal.
 // In the panel: r refresh, t the full recap, m machines, s settings, a ask
 // agent, j/k or arrows scroll, Esc close. The footer is Fleetwatch's: Machines
-// opens the list of machines (`git-fleetlog machines`), Settings the config
-// (`git-fleetlog config`), and saving either reads every machine again.
-// Uninstall asks in a terminal what to remove (`git-fleetlog uninstall`). Ask
+// opens the list of machines (`fleetlog machines`), Settings the config
+// (`fleetlog config`), and saving either reads every machine again.
+// Uninstall asks in a terminal what to remove (`fleetlog uninstall`). Ask
 // agent starts the default coding agent on the setup, as "Set up with agent"
 // while only this machine is listed; the agent button by a project's left-off
-// lines starts it in that repo, on the machine they are on (`git-fleetlog
+// lines starts it in that repo, on the machine they are on (`fleetlog
 // ask-agent`).
 Panel {
   id: root
@@ -34,7 +34,7 @@ Panel {
   ipcTarget: "io.github.frestina.fleetlog"
 
   readonly property string command: decodeURIComponent(
-    Qt.resolvedUrl("../bin/git-fleetlog").toString().replace(/^file:\/\//, ""))
+    Qt.resolvedUrl("../bin/fleetlog").toString().replace(/^file:\/\//, ""))
   readonly property string fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
   // Match config_path() and hosts_path() in fleetlog/config.py.
   readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
@@ -88,9 +88,9 @@ Panel {
   property color warnColor: Color.accent
 
   readonly property string tooltipText: {
-    if (!root.view) return "git-fleetlog: your commits and where you left off"
+    if (!root.view) return "fleetlog: your commits and where you left off"
     var n = root.view.attentionCount
-    return "git-fleetlog: " + (n === 0 ? "all pushed and committed"
+    return "fleetlog: " + (n === 0 ? "all pushed and committed"
       : n + (n === 1 ? " project needs" : " projects need") + " attention")
       + " (" + root.view.header.charAt(0).toLowerCase() + root.view.header.slice(1) + ")"
   }
@@ -154,8 +154,8 @@ Panel {
     }
     // 0: every machine was read; 1: one was not, which the JSON says; 2: an error.
     if (root.procExitCode !== 0 && root.procExitCode !== 1) {
-      const reason = Model.clean(errOut.text.trim().split("\n").pop()).replace(/^git-fleetlog: /, "")
-      root.error = (reason || "git-fleetlog exited " + root.procExitCode).slice(0, 300)
+      const reason = Model.clean(errOut.text.trim().split("\n").pop()).replace(/^fleetlog: /, "")
+      root.error = (reason || "fleetlog exited " + root.procExitCode).slice(0, 300)
       return
     }
     try {
@@ -756,7 +756,7 @@ Panel {
             Button {
               iconText: root.glyphUninstall
               text: "Uninstall"
-              tooltipText: "Asks what to remove, then uninstalls git-fleetlog"
+              tooltipText: "Asks what to remove, then uninstalls fleetlog"
               foreground: root.barForeground
               fontFamily: root.fontFamily
               fontSize: Style.font.bodySmall

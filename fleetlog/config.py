@@ -1,9 +1,9 @@
-"""Where git-fleetlog's machines, folders and identities come from.
+"""Where fleetlog's machines, folders and identities come from.
 
 Machines come from ~/.config/fleet/hosts, the list every Fleet tool shares
 (https://github.com/Frestina/fleet/blob/main/HOSTS.md), then from [machines]
-in git-fleetlog's own config, for machines only it reads. skip there leaves
-listed machines out, by label. `git fleetlog machines` opens the hosts file,
+in fleetlog's own config, for machines only it reads. skip there leaves
+listed machines out, by label. `fleetlog machines` opens the hosts file,
 written first with this machine in it when there is none.
 
 A line of the hosts file is <label> <ssh target> [<hostname>], and the line
@@ -36,7 +36,7 @@ The config, ~/.config/fleet/log/config.toml, is optional TOML:
     [identity]
     emails = ["me@example.org"]
 
-`git fleetlog config` writes TEMPLATE there when there is none, and opens it.
+`fleetlog config` writes TEMPLATE there when there is none, and opens it.
 """
 
 import os
@@ -51,7 +51,7 @@ from pathlib import Path
 FOLDERS = ("~/Projects", "~/dotfiles")
 
 TEMPLATE = """\
-# Settings for git-fleetlog. Every one is optional: remove the # in front of
+# Settings for fleetlog. Every one is optional: remove the # in front of
 # a setting to turn it on. Text goes in double quotes, lists in brackets. The
 # panel reads every machine again when you save.
 
@@ -74,8 +74,8 @@ TEMPLATE = """\
 
 [machines]
 # Machines are listed in ~/.config/fleet/hosts, which every Fleet tool reads
-# (`git fleetlog machines`, or Machines in the panel). Here, more that only
-# git-fleetlog reads: <label> = "<ssh target>", or "local" for this machine.
+# (`fleetlog machines`, or Machines in the panel). Here, more that only
+# fleetlog reads: <label> = "<ssh target>", or "local" for this machine.
 # nas = "nas"
 # And the ones in the hosts file it leaves out, by label.
 # skip = ["pi"]

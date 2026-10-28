@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "author": "Frestina",
   "license": "MIT",
-  "description": "git-fleetlog in the bar: your commits from every repo on every machine, sorted by what needs doing, and where each project was left.",
+  "description": "fleetlog in the bar: your commits from every repo on every machine, sorted by what needs doing, and where each project was left.",
   "kinds": [
     "bar-widget"
   ],

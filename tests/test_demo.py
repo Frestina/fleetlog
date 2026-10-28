@@ -26,7 +26,7 @@ class DemoTest(unittest.TestCase):
             env = {"PATH": os.environ["PATH"], "HOME": tmp, "GIT_CONFIG_GLOBAL": os.devnull,
                    "XDG_CONFIG_HOME": str(home / ".config"),
                    "XDG_CACHE_HOME": str(home / ".cache")}
-            done = subprocess.run([str(ROOT / "bin" / "git-fleetlog"), "--json", "--reuse-from",
+            done = subprocess.run([str(ROOT / "bin" / "fleetlog"), "--json", "--reuse-from",
                                    str(fixture["until"])], capture_output=True, text=True,
                                   env=env, timeout=30)
         self.assertEqual(done.returncode, 1, done.stderr)  # pi is not reached

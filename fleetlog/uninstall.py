@@ -1,12 +1,13 @@
-"""`git fleetlog uninstall`: what git-fleetlog and its setup added on this
+"""`fleetlog uninstall`: what fleetlog and its setup added on this
 machine, removed after asking. The panel's Uninstall button runs it in a
 terminal.
 
-It lists what is there: the timers install wrote, git-fleetlog's config,
+It lists what is there: the timers install wrote, fleetlog's config,
 cache and state folders (fleet/log in each), the shared hosts file when no
 other Fleet tool's folder is left beside it, and the
-~/.local/bin/git-fleetlog link when it points at this command. Then it asks whether to remove the plugin and all of
-that, or only the plugin. The plugin goes first, so a running panel cannot
+~/.local/bin/fleetlog and git-fleetlog links when they point at this
+command. Then it asks whether to remove the plugin and all of that, or only
+the plugin. The plugin goes first, so a running panel cannot
 write its cache again. A folder that is a link, into dotfiles say, loses only
 the link.
 
@@ -26,7 +27,7 @@ from pathlib import Path
 from fleetlog import cache, config, timers
 
 PLUGIN_ID = "io.github.frestina.fleetlog"
-COMMAND = Path(__file__).resolve().parent.parent / "bin" / "git-fleetlog"
+COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
 
 Plan = list[tuple[str, Callable[[], object]]]
 
@@ -35,8 +36,9 @@ def plugin_dir() -> Path:
     return Path.home() / ".config" / "omarchy" / "plugins" / PLUGIN_ID
 
 
-def link_path() -> Path:
-    return Path.home() / ".local" / "bin" / "git-fleetlog"
+def link_paths() -> list[Path]:
+    """The links install.sh makes: the command, and the one git runs."""
+    return [Path.home() / ".local" / "bin" / name for name in ("fleetlog", "git-fleetlog")]
 
 
 def tilde(path: Path) -> str:
@@ -49,11 +51,11 @@ def our_link(link: Path) -> bool:
     if not link.is_symlink():
         return False
     target = os.path.normpath(link.parent / os.readlink(link))
-    return target in (str(COMMAND), str(plugin_dir() / "bin" / "git-fleetlog"))
+    return target in (str(COMMAND), str(plugin_dir() / "bin" / "fleetlog"))
 
 
 def plan() -> Plan:
-    """What git-fleetlog and its setup left outside the plugin folder, as
+    """What fleetlog and its setup left outside the plugin folder, as
     (description, action) pairs."""
     out: Plan = []
     if units := timers.installed():
@@ -71,9 +73,9 @@ def plan() -> Plan:
         what = (f"only the link to {tilde(hosts.resolve())}" if hosts.is_symlink()
                 else "your list of machines")
         out.append((f"{tilde(hosts)}, {what} (no other Fleet tool uses it)", remove_hosts))
-    link = link_path()
-    if our_link(link):
-        out.append((f"{tilde(link)}, the link to the git-fleetlog command", link.unlink))
+    for link in link_paths():
+        if our_link(link):
+            out.append((f"{tilde(link)}, a link to the fleetlog command", link.unlink))
     return out
 
 
@@ -127,7 +129,7 @@ def interactive() -> bool:
 
 def run() -> int:
     if not interactive():
-        print("git-fleetlog: uninstall asks before removing anything; run it in a terminal",
+        print("fleetlog: uninstall asks before removing anything; run it in a terminal",
               file=sys.stderr)
         return 2
     steps = plan()
@@ -135,13 +137,13 @@ def run() -> int:
     has_plugin = plugin.exists() or plugin.is_symlink()
     everything = "Remove the plugin and all of this" if has_plugin else "Remove all of this"
     plugin_only = "Remove only the plugin"
-    print("Uninstall git-fleetlog\n")
+    print("Uninstall fleetlog\n")
     if not steps and not has_plugin:
         print("Nothing to remove.")
         return 0
     if steps:
-        print("Besides the plugin, git-fleetlog and its setup added:\n" if has_plugin
-              else "git-fleetlog and its setup added:\n")
+        print("Besides the plugin, fleetlog and its setup added:\n" if has_plugin
+              else "fleetlog and its setup added:\n")
         for description, _ in steps:
             print(f"  - {description}")
         print()
@@ -155,7 +157,7 @@ def run() -> int:
         return 1
     # The plugin goes first: a running panel would write its cache again.
     if has_plugin and subprocess.run(["omarchy-plugin-remove", PLUGIN_ID, "--yes"]).returncode:
-        print("git-fleetlog: the plugin was not removed, so nothing else was either",
+        print("fleetlog: the plugin was not removed, so nothing else was either",
               file=sys.stderr)
         return 1
     status = 0
@@ -165,7 +167,7 @@ def run() -> int:
                 action()
                 print(f"Removed {description}.")
             except (OSError, timers.TimersError) as e:
-                print(f"git-fleetlog: could not remove {description}: "
+                print(f"fleetlog: could not remove {description}: "
                       f"{getattr(e, 'strerror', None) or e}", file=sys.stderr)
                 status = 1
     notes(has_plugin, kept_timers=choice == plugin_only and bool(timers.installed()))
@@ -178,8 +180,8 @@ def notes(had_plugin: bool, kept_timers: bool) -> None:
     if kept_timers and str(COMMAND).startswith(str(plugin_dir()) + "/"):
         print("The timers stay, but they ran the plugin's command, which is gone now. "
               "Install them again from a clone, or remove them with: systemctl --user "
-              "disable --now git-fleetlog-weekly.timer git-fleetlog-retry.timer "
-              "git-fleetlog-notify.timer")
+              "disable --now fleetlog-weekly.timer fleetlog-retry.timer "
+              "fleetlog-notify.timer")
     hosts = config.hosts_path()
     if (hosts.exists() or hosts.is_symlink()) and (others := other_tools()):
         print(f"{tilde(hosts)} stays, for the other Fleet tools here "
@@ -189,4 +191,4 @@ def notes(had_plugin: bool, kept_timers: bool) -> None:
     if not had_plugin:
         print(f"The command itself is in {tilde(COMMAND.parent.parent)}; delete that folder "
               "when you no longer want it.")
-    print("This was this machine only; git-fleetlog on your other machines is untouched.")
+    print("This was this machine only; fleetlog on your other machines is untouched.")

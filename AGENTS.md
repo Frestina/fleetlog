@@ -1,13 +1,13 @@
 # Working in this repo
 
-git-fleetlog is `git log` for a fleet of Linux machines: the author's commits
+fleetlog is `git log` for a fleet of Linux machines: the author's commits
 from every repo on every machine, and where each project was left.
 [SPEC.md](SPEC.md) is the source of truth: read it before changing behaviour,
 and change it in the same commit when a decision changes.
 
 ## Layout
 
-- `bin/git-fleetlog`: the command; `fleetlog/cli.py` parses its arguments.
+- `bin/fleetlog`: the command; `fleetlog/cli.py` parses its arguments.
 - `fleetlog/collect.sh`: runs on every machine, fed over stdin. Only reads.
 - `fleetlog/collect.py`: runs it, locally or over one ssh call, and parses
   its records into facts.

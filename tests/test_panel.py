@@ -1,4 +1,4 @@
-"""The panel's model, panel/model.js, on git-fleetlog's real --json.
+"""The panel's model, panel/model.js, on fleetlog's real --json.
 
 It runs under node (tests/panel_view.js); the shell runs the same file as a
 QML library. Skipped when node is not installed.
@@ -125,14 +125,14 @@ class PanelTest(FleetTest):
                         p["commits"][0])
 
     def test_json_it_cannot_read_is_refused_with_a_reason(self):
-        self.assertEqual(self.model("git-fleetlog: oops")["error"], "git-fleetlog gave no JSON")
+        self.assertEqual(self.model("fleetlog: oops")["error"], "fleetlog gave no JSON")
         newer = json.loads(self.recap())
         newer["schema"] = 2
         self.assertIn("schema 2", self.model(json.dumps(newer))["error"])
         status = json.loads(self.recap())
         status["kind"] = "status"
         self.assertEqual(self.model(json.dumps(status))["error"],
-                         "git-fleetlog gave JSON this panel does not read")
+                         "fleetlog gave JSON this panel does not read")
 
 
 def notes_path(test: PanelTest, machine: str) -> str:

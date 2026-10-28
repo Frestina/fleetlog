@@ -1,18 +1,18 @@
-"""The git-fleetlog command.
+"""The fleetlog command.
 
-    git fleetlog [--since <when>] [--json]   the recap, read from every machine now
-    git fleetlog --reuse-from <unix time>    the recap, sharing one read (the bar icon)
-    git fleetlog status [--json]             only where each project was left
-    git fleetlog latest [--json]             the last weekly recap, from the main machine
-    git fleetlog machines                    open the list of machines, with this one when new
-    git fleetlog config                      open the config, with a guide when it is new
-    git fleetlog ask-agent [-- MACHINE FOLDER [LEFT...]]
+    fleetlog [--since <when>] [--json]   the recap, read from every machine now
+    fleetlog --reuse-from <unix time>    the recap, sharing one read (the bar icon)
+    fleetlog status [--json]             only where each project was left
+    fleetlog latest [--json]             the last weekly recap, from the main machine
+    fleetlog machines                    open the list of machines, with this one when new
+    fleetlog config                      open the config, with a guide when it is new
+    fleetlog ask-agent [-- MACHINE FOLDER [LEFT...]]
                                              your coding agent, on the setup or on one repo
-    git fleetlog weekly [--retry]            build the weekly recap (its timer runs this)
-    git fleetlog notify                      the weekly notification (its timer runs this)
-    git fleetlog timers install main|viewer
-    git fleetlog timers remove | status
-    git fleetlog uninstall                   remove git-fleetlog from this machine, after asking
+    fleetlog weekly [--retry]            build the weekly recap (its timer runs this)
+    fleetlog notify                      the weekly notification (its timer runs this)
+    fleetlog timers install main|viewer
+    fleetlog timers remove | status
+    fleetlog uninstall                   remove fleetlog from this machine, after asking
 
 Exit codes: 0 everything was read, 1 a machine was not reached or not fully
 read, 2 an error.
@@ -49,7 +49,7 @@ def since(text: str) -> int:
 
 def parser() -> argparse.ArgumentParser:
     out = argparse.ArgumentParser(
-        prog="git-fleetlog",
+        prog="fleetlog",
         description="git log for the whole fleet: your commits from every repo on every "
                     "machine, and where each project was left.")
     out.add_argument("--since", type=since, metavar="WHEN",
@@ -90,8 +90,8 @@ def parser() -> argparse.ArgumentParser:
     i.add_argument("role", choices=("main", "viewer"))
     tsub.add_parser("remove", help="remove every timer install wrote")
     tsub.add_parser("status", help="show the installed timers")
-    sub.add_parser("uninstall", help="remove git-fleetlog from this machine, after asking",
-                   description="Lists what git-fleetlog and its setup added on this machine "
+    sub.add_parser("uninstall", help="remove fleetlog from this machine, after asking",
+                   description="Lists what fleetlog and its setup added on this machine "
                                "(timers, config, cache, state, the ~/.local/bin link), asks, "
                                "then removes the Omarchy plugin and, if you say so, all of "
                                "that. The shared hosts file stays while another Fleet tool "
@@ -141,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         return show(cfg, collect.collect_all(cfg, start, until), start, until, args.json)
     except (config.ConfigError, weekly.NoRecap, weekly.Busy, timers.TimersError,
             agent.AgentError) as e:
-        print(f"git-fleetlog: {e}", file=sys.stderr)
+        print(f"fleetlog: {e}", file=sys.stderr)
         return EXIT_ERROR
     except KeyboardInterrupt:
         return 130
@@ -152,13 +152,13 @@ def edit(ensure: Callable[[], Path]) -> int:
     try:
         path = ensure()
     except OSError as e:
-        print(f"git-fleetlog: cannot write {e.filename}: {e.strerror}", file=sys.stderr)
+        print(f"fleetlog: cannot write {e.filename}: {e.strerror}", file=sys.stderr)
         return EXIT_ERROR
     cmd = config.editor_command(path, sys.stdin.isatty())
     try:
         os.execvp(cmd[0], cmd)
     except OSError as e:
-        print(f"git-fleetlog: cannot run {cmd[0]}: {e.strerror}", file=sys.stderr)
+        print(f"fleetlog: cannot run {cmd[0]}: {e.strerror}", file=sys.stderr)
         return EXIT_ERROR
 
 
@@ -170,7 +170,7 @@ def show(cfg: config.Config, facts: list[dict], start: int, until: int, as_json:
         text = (recap.as_json if as_json else recap.markdown)(
             facts, projects, start, until, status)
     except (KeyError, TypeError, ValueError, AttributeError) as e:
-        print(f"git-fleetlog: the facts do not read ({type(e).__name__}: {e})", file=sys.stderr)
+        print(f"fleetlog: the facts do not read ({type(e).__name__}: {e})", file=sys.stderr)
         return EXIT_ERROR
     sys.stdout.write(text)
     if not cfg.identities and not as_json:

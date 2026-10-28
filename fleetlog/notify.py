@@ -37,7 +37,7 @@ import time
 from fleetlog import recap, timers, weekly
 from fleetlog.config import Config
 
-APP = "git-fleetlog"
+APP = "fleetlog"
 SHOW_FOR = 3 * 24 * 3600  # after the window ends
 SHOWN = "shown"
 SAID = "unreachable-said"
@@ -143,7 +143,7 @@ def _say_unreachable(why: str) -> int:
         try:
             done = subprocess.run(
                 ["notify-send", f"--app-name={APP}", "--urgency=critical", "--",
-                 "git-fleetlog: no weekly recap",
+                 "fleetlog: no weekly recap",
                  html.escape(f"{why}. Trying again every hour.", quote=False)],
                 stdin=subprocess.DEVNULL, capture_output=True, timeout=30)
         except (OSError, subprocess.TimeoutExpired) as e:

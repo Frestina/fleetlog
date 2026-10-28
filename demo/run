@@ -25,9 +25,9 @@ pid=$(pgrep -f '^quickshell .*omarchy/shell' | head -1 || true)
 qs ipc --pid "$pid" show | grep -q "target $id" || { echo "demo: $id is not loaded in the shell" >&2; exit 1; }
 
 runtime=${XDG_RUNTIME_DIR:?}
-stale=$(compgen -G "$runtime/git-fleetlog-demo.*" || true)
+stale=$(compgen -G "$runtime/fleetlog-demo.*" || true)
 [ -z "$stale" ] || { echo "demo: interrupted run left $stale; restore its backup-read.json to $cache and backup-config to $config by hand" >&2; exit 1; }
-state=$(mktemp -d "$runtime/git-fleetlog-demo.XXXXXX")
+state=$(mktemp -d "$runtime/fleetlog-demo.XXXXXX")
 had_cache=0 had_config=0
 if [ -e "$cache" ]; then cp -p "$cache" "$state/backup-read.json"; had_cache=1; fi
 if [ -e "$config" ]; then cp -p "$config" "$state/backup-config"; had_config=1; fi
@@ -35,7 +35,7 @@ if [ -e "$config" ]; then cp -p "$config" "$state/backup-config"; had_config=1; 
 # Wait for the panel's read to start and end.
 settle() {
   sleep 2
-  while pgrep -f "$PWD/bin/git-fleetlog --json" >/dev/null; do sleep 0.2; done
+  while pgrep -f "$PWD/bin/fleetlog --json" >/dev/null; do sleep 0.2; done
 }
 
 restored=0

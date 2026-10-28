@@ -1,5 +1,5 @@
 .pragma library
-// What the panel shows, from git-fleetlog's --json. The command decides
+// What the panel shows, from fleetlog's --json. The command decides
 // which commits count and what is left off; this only sorts its facts for
 // the panel and words them, the way the Markdown recap does.
 //
@@ -17,7 +17,7 @@
 //   project: {key, name, account, count, countText, left: [{text, ask}],
 //             commits: [line], more, machines: [line]}
 //   ask: on the first left-off line of each machine, what its agent button
-//        passes to `git-fleetlog ask-agent`: {machine, path, lines: [text]}
+//        passes to `fleetlog ask-agent`: {machine, path, lines: [text]}
 //
 // Text from other machines (subjects, paths, branch names, errors) is
 // stripped of control characters here, and the panel shows it as plain text.
@@ -40,13 +40,13 @@ function parse(text) {
   try {
     data = JSON.parse(text)
   } catch (e) {
-    throw new Error("git-fleetlog gave no JSON")
+    throw new Error("fleetlog gave no JSON")
   }
   if (!data || data.schema !== SCHEMA)
-    throw new Error("git-fleetlog gave JSON of another version (schema "
+    throw new Error("fleetlog gave JSON of another version (schema "
                     + clean(data && data.schema) + "); update the panel and the command together")
   if (data.kind !== "recap" || !Array.isArray(data.machines) || !Array.isArray(data.projects))
-    throw new Error("git-fleetlog gave JSON this panel does not read")
+    throw new Error("fleetlog gave JSON this panel does not read")
   return data
 }
 

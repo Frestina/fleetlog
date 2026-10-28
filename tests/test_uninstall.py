@@ -1,4 +1,4 @@
-"""`git fleetlog uninstall`: what it lists, what each answer removes, and
+"""`fleetlog uninstall`: what it lists, what each answer removes, and
 what it never touches."""
 
 import contextlib
@@ -10,7 +10,7 @@ from unittest import mock
 from fleetlog import timers, uninstall
 from tests.fleet import FleetTest
 
-COMMAND = Path(__file__).resolve().parent.parent / "bin" / "git-fleetlog"
+COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
 
 
 class UninstallTest(FleetTest):
@@ -27,9 +27,11 @@ class UninstallTest(FleetTest):
         for folder in self.folders:
             folder.mkdir(parents=True)
             (folder / "kept").write_text("x\n")
-        self.link = self.home / ".local" / "bin" / "git-fleetlog"
+        self.link = self.home / ".local" / "bin" / "fleetlog"
+        self.git_link = self.link.parent / "git-fleetlog"
         self.link.parent.mkdir(parents=True)
         self.link.symlink_to(uninstall.COMMAND)
+        self.git_link.symlink_to(uninstall.COMMAND)
         with contextlib.redirect_stdout(io.StringIO()):
             timers.install("viewer")
         self.fleet.clear_calls()
@@ -55,10 +57,10 @@ class UninstallTest(FleetTest):
         self.assertEqual(code, 0, out)
         self.assertEqual(offered, [["Remove the plugin and all of this", "Remove only the plugin",
                                     "Cancel"]])
-        for line in ("the timers git-fleetlog-notify", "~/.config/fleet/log/",
+        for line in ("the timers fleetlog-notify", "~/.config/fleet/log/",
                      "~/.cache/fleet/log/", "~/.local/state/fleet/log/",
                      "~/.config/fleet/hosts, your list of machines (no other Fleet tool",
-                     "~/.local/bin/git-fleetlog, the link"):
+                     "~/.local/bin/fleetlog, a link", "~/.local/bin/git-fleetlog, a link"):
             self.assertIn(line, out)
         self.assertEqual(self.fleet.calls("omarchy-plugin-remove"),
                          [[uninstall.PLUGIN_ID, "--yes"]])
@@ -66,6 +68,7 @@ class UninstallTest(FleetTest):
         for folder in self.folders:
             self.assertFalse(folder.exists(), folder)
         self.assertFalse(self.link.is_symlink())
+        self.assertFalse(self.git_link.is_symlink())
         self.assertEqual(timers.installed(), [])
         self.assertFalse(self.hosts.exists())
         self.assertFalse(self.hosts.parent.exists())
@@ -98,6 +101,7 @@ class UninstallTest(FleetTest):
         for folder in self.folders:
             self.assertTrue((folder / "kept").exists(), folder)
         self.assertTrue(self.link.is_symlink())
+        self.assertTrue(self.git_link.is_symlink())
         self.assertNotEqual(timers.installed(), [])
 
     def test_cancel_removes_nothing(self):
@@ -131,13 +135,15 @@ class UninstallTest(FleetTest):
 
     def test_a_link_to_another_command_stays(self):
         self.link.unlink()
-        self.link.symlink_to(self.home / "elsewhere" / "git-fleetlog")
+        self.link.symlink_to(self.home / "elsewhere" / "fleetlog")
         _, out, _ = self.run_it("Remove the plugin and all")
-        self.assertNotIn("~/.local/bin/git-fleetlog", out)
+        self.assertNotIn("~/.local/bin/fleetlog,", out)
         self.assertTrue(self.link.is_symlink())
+        self.assertIn("~/.local/bin/git-fleetlog, a link", out)
+        self.assertFalse(self.git_link.is_symlink())
 
     def test_a_linked_plugin_loses_only_the_link(self):
-        checkout = self.home / "Projects" / "git-fleetlog"
+        checkout = self.home / "Projects" / "fleetlog"
         checkout.parent.mkdir()
         self.plugin.rename(checkout)
         self.plugin.symlink_to(checkout)

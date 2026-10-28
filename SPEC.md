@@ -1,6 +1,6 @@
-# git-fleetlog spec
+# fleetlog spec
 
-This is the source of truth for git-fleetlog. Change this file when a
+This is the source of truth for fleetlog. Change this file when a
 decision changes.
 
 ## The problem
@@ -12,9 +12,9 @@ project it is hard to remember where it stopped: which machine has the
 newest commits, what was never pushed, and what was finished that week at
 all.
 
-## What git-fleetlog is
+## What fleetlog is
 
-`git log` for the whole fleet. One command, `git-fleetlog` (also runnable as
+`git log` for the whole fleet. One command, `fleetlog` (also runnable as
 `git fleetlog`), collects the author's commits from every git repo on every
 machine for a period (a week by default) and prints them as a short recap
 grouped by project.
@@ -43,36 +43,36 @@ Fleetwatch, and reads the list of machines every
 
 ## Commands
 
-- `git fleetlog`: the recap for the last 7 days, read now from every machine.
-- `git fleetlog --since <when>`: the recap from a date (`2026-10-01`) or a
+- `fleetlog`: the recap for the last 7 days, read now from every machine.
+- `fleetlog --since <when>`: the recap from a date (`2026-10-01`) or a
   time ago (`10d`, `2w`) until now. Any past week can be built again this way,
   so past recaps are not kept.
-- `git fleetlog status`: only the left-off part, for every project, with no
+- `fleetlog status`: only the left-off part, for every project, with no
   time window. For "where was I?" without a week of commits around it.
-- `git fleetlog latest`: the last weekly recap the main machine built (one ssh
+- `fleetlog latest`: the last weekly recap the main machine built (one ssh
   call to it), instead of reading every machine again.
-- `git fleetlog machines`: opens the shared hosts file in the same editor,
+- `fleetlog machines`: opens the shared hosts file in the same editor,
   written first with a commented guide and this machine when there is none.
   See [Where things come from](#where-things-come-from).
-- `git fleetlog config`: opens the config in Omarchy's default editor (or
+- `fleetlog config`: opens the config in Omarchy's default editor (or
   `$VISUAL`, `$EDITOR`), after writing a commented guide there when there is
   no config yet. It never changes a config that is there.
-- `git fleetlog uninstall`: removes git-fleetlog from this machine, after
+- `fleetlog uninstall`: removes fleetlog from this machine, after
   asking. See [Install and remove](#install-and-remove).
-- `git fleetlog ask-agent [-- <machine> <folder> [<left-off line>...]]`:
+- `fleetlog ask-agent [-- <machine> <folder> [<left-off line>...]]`:
   starts the user's coding agent, on the setup or in one repo. What the
   panel's agent buttons run; see [Your agent](#your-agent).
 - `--json` on any of these: the same facts, exact, for scripts and agents.
-- `git fleetlog --reuse-from <unix time>`: the last 7 days from the last read
+- `fleetlog --reuse-from <unix time>`: the last 7 days from the last read
   if it started at or after that time, else from a new read that is kept for
   the next caller. The bar icon's hourly read, shared by every monitor.
-- `git fleetlog weekly [--retry]` and `git fleetlog notify`: what the timers
-  run. `git fleetlog timers install main|viewer`, `timers remove` and
+- `fleetlog weekly [--retry]` and `fleetlog notify`: what the timers
+  run. `fleetlog timers install main|viewer`, `timers remove` and
   `timers status` manage the timers.
 
 Exit codes: 0 when every machine was read, 1 when one was not reached or not
-fully read, 2 for an error. (`git fleetlog --help` asks git for a man page;
-`git-fleetlog -h` prints the help.)
+fully read, 2 for an error. (`fleetlog --help` and `-h` print the help;
+`git fleetlog --help` asks git for a man page instead.)
 
 ## Output
 
@@ -159,10 +159,10 @@ sorted by what needs doing.
   - When the list of machines holds only this one, a line says so, as in
     Fleetwatch: add the others, or let the agent find them.
   - The footer is Fleetwatch's, button for button. **Machines** (`m`) runs
-    `git fleetlog machines` and **Settings** (`s`) `git fleetlog config`;
+    `fleetlog machines` and **Settings** (`s`) `fleetlog config`;
     saving the config or the hosts file reads every machine again, once
     for all monitors, so the panel shows it without a refresh.
-    **Uninstall** runs `git fleetlog uninstall` in a floating terminal, since
+    **Uninstall** runs `fleetlog uninstall` in a floating terminal, since
     it asks first. **Ask agent** (`a`) is **Set up with agent**, and
     outlined, while only this machine is listed: see
     [Your agent](#your-agent). Under them, the keys: a click on a project,
@@ -172,7 +172,7 @@ sorted by what needs doing.
 - **Its parts**: `manifest.json` and `panel/` make this repo an Omarchy shell
   plugin, `io.github.frestina.fleetlog`: one bar widget with its own panel,
   as Omarchy's audio and Bluetooth icons are. The panel runs the plugin's own
-  `bin/git-fleetlog`. See [Install and remove](#install-and-remove).
+  `bin/fleetlog`. See [Install and remove](#install-and-remove).
 - **Its rules**: the panel only displays. Which commits count, what is left
   off and how machines are read stay in the command and its JSON. It runs the
   command with an argument list, never a shell string, and shows every text
@@ -203,7 +203,7 @@ The panel can hand what it shows to the user's default coding agent
 - **What it may do**: Omarchy starts agents with approvals switched off, so
   the repo guide holds the agent to looking freely and changing nothing
   (commit, push, pull, reset, dropping a stash, deleting a branch) until the
-  user says yes, and never force-pushing. git-fleetlog itself still changes
+  user says yes, and never force-pushing. fleetlog itself still changes
   no repo: the agent does, in a session the user started and sits in.
 - **Its ssh**: an interactive session the user asked for, not a run, so the
   user's own ssh config applies, agent forwarding included where it is set,
@@ -225,11 +225,11 @@ The panel can hand what it shows to the user's default coding agent
   whose hostname is this machine's (in full, or up to the first dot), or
   whose target is `local`, is read locally, so the same file works copied to
   every machine. Anything after the hostname is ignored.
-  - `git fleetlog machines` (the panel's Machines button) writes it the first
+  - `fleetlog machines` (the panel's Machines button) writes it the first
     time, with the header HOSTS.md gives and this machine. It never writes to
     a file that is there, or to a link to one.
   - Without it, the fleet is this machine and those in the config.
-  - `[machines]` in the config adds machines only git-fleetlog should read,
+  - `[machines]` in the config adds machines only fleetlog should read,
     and `skip` there leaves machines in the hosts file out, by label. A label
     in both the hosts file and `[machines]` is an error.
 - **Repos**: found by searching folders on each machine, `~/Projects` and
@@ -251,7 +251,7 @@ The panel can hand what it shows to the user's default coding agent
 ## Config
 
 `~/.config/fleet/log/config.toml`, optional, in TOML. Without it the
-defaults above apply. `git fleetlog config`, and the panel's settings button, open it, and
+defaults above apply. `fleetlog config`, and the panel's settings button, open it, and
 write a guide there first when there is none: every setting commented out,
 so it changes nothing until one is turned on.
 
@@ -264,7 +264,7 @@ all = ["~/Projects", "~/dotfiles"]
 homeserver = ["~/srv"]            # searched there as well as the folders for all
 
 [machines]
-# Machines only git-fleetlog reads, beyond the hosts file: <label> = "<ssh target>"
+# Machines only fleetlog reads, beyond the hosts file: <label> = "<ssh target>"
 nas = "nas"
 skip = ["pi"]                     # in the hosts file, but not read
 
@@ -285,8 +285,10 @@ is an error that names the setting, as is a file that is not TOML.
   `omarchy plugin add https://github.com/Frestina/fleetlog --enable`.
   Omarchy clones the repo into `~/.config/omarchy/plugins/io.github.frestina.fleetlog`
   and updates it with `omarchy plugin update`. The command comes with it;
-  the plugin's `install.sh` links it into `~/.local/bin`, so `git fleetlog`
-  works in a terminal too. The setup agent offers to do this.
+  the plugin's `install.sh` links it into `~/.local/bin` as `fleetlog` and
+  as `git-fleetlog`, so `fleetlog` and `git fleetlog` work in a terminal
+  too. Until 2026-10-28 the command was `git-fleetlog`; the link keeps the
+  old name working. The setup agent offers to do this.
 - **Anywhere else**, such as an always-on main machine without Omarchy: a
   clone, and `install.sh` in it. Everything but the panel works the same.
 - **For development**, the checkout is linked into the plugins folder
@@ -294,11 +296,12 @@ is an error that names the setting, as is a file that is not TOML.
   by itself: `omarchy restart shell` after a pull that changes `panel/`.
 - The timers run the command where it was when they were installed. The
   plugin's folder keeps its path across updates, so they keep working.
-- **`git fleetlog uninstall`**, or Uninstall in the panel, lists what
-  git-fleetlog and its setup added on this machine: the timers, its
+- **`fleetlog uninstall`**, or Uninstall in the panel, lists what
+  fleetlog and its setup added on this machine: the timers, its
   `fleet/log` folders for config, cache and state, the shared hosts file
   when no other Fleet tool's folder is left in `~/.config/fleet/`, and the
-  `~/.local/bin/git-fleetlog` link when it points at this command. It asks
+  `~/.local/bin/fleetlog` and `git-fleetlog` links when they point at this
+  command. It asks
   whether to remove the plugin and all of that, only the plugin, or nothing,
   and only in a terminal. The plugin goes first (`omarchy plugin remove`),
   so a running panel cannot write its cache again; if it stays, nothing else
