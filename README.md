@@ -23,7 +23,7 @@ git fleetlog --json       # exact data, for scripts and agents
 It reads machines over ssh, one call per machine, and changes nothing: no
 fetch, no pull, no push. The other machines need only bash and git, and no
 Omarchy. It doesn't need
-[Fleetwatch](https://github.com/Frestina/omarchy-fleetwatch) either, and
+[Fleetwatch](https://github.com/Frestina/fleetwatch) either, and
 shares one list of machines with it and the other
 [Fleet](https://github.com/Frestina/fleet) tools.
 
@@ -84,7 +84,7 @@ a short recap never just means missing data.
 On Omarchy, as a plugin, with the panel:
 
 ```
-omarchy plugin add https://github.com/Frestina/git-fleetlog --enable
+omarchy plugin add https://github.com/Frestina/fleetlog --enable
 ```
 
 The `git fleetlog` command comes with it, but isn't on your `PATH` until you
@@ -97,8 +97,8 @@ link it (**Set up with agent** offers to do this):
 Anywhere else, the command alone:
 
 ```
-git clone https://github.com/Frestina/git-fleetlog
-git-fleetlog/install.sh   # links git-fleetlog into ~/.local/bin
+git clone https://github.com/Frestina/fleetlog
+fleetlog/install.sh       # links git-fleetlog into ~/.local/bin
 ```
 
 To open the panel from the keyboard too, add to

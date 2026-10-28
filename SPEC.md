@@ -282,7 +282,7 @@ is an error that names the setting, as is a file that is not TOML.
 ## Install and remove
 
 - **On Omarchy**, as a plugin, like Fleetwatch:
-  `omarchy plugin add https://github.com/Frestina/git-fleetlog --enable`.
+  `omarchy plugin add https://github.com/Frestina/fleetlog --enable`.
   Omarchy clones the repo into `~/.config/omarchy/plugins/io.github.frestina.fleetlog`
   and updates it with `omarchy plugin update`. The command comes with it;
   the plugin's `install.sh` links it into `~/.local/bin`, so `git fleetlog`
