@@ -90,7 +90,9 @@ class FakeFleet:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
 
-    def load(self) -> config.Config:
+    # Quoted: in this class body, config is the method above, and Pythons
+    # before 3.14 evaluate annotations when the class is made.
+    def load(self) -> "config.Config":
         return config.load()
 
     def unreachable(self, name: str) -> None:
