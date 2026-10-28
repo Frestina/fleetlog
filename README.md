@@ -2,6 +2,8 @@
 
 <p align="center"><code>git log</code> for all your machines: your commits from every repo on every machine, grouped by project, and where you left each one. A command for any Linux terminal, and on Omarchy a panel in the bar.</p>
 
+<p align="center">Part of <a href="https://github.com/Frestina/fleet">Fleet</a>: fleetwatch · fleetlog · fleetdrop</p>
+
 <p align="center"><a href="https://github.com/tcballard/omarchy-badges"><img alt="Built for Omarchy: Plugin" height="20" src="https://raw.githubusercontent.com/tcballard/omarchy-badges/75975e5b5bf75e7ede3764bcd2950046f7abfe2c/badges/v1/omarchy-plugin.svg"></a></p>
 
 <p align="center"><img alt="The fleetlog panel for a fictional fleet: dotfiles, invoice-tool and weather-widget need attention, each with what is left off on which machine and an agent button; recipe-site and homelab are all pushed; one machine was not reached. The footer has Machines, Settings, Uninstall and Ask agent" src="preview.png" width="400"></p>

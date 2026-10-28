@@ -31,6 +31,9 @@ and change it in the same commit when a decision changes.
   notify-send, systemctl and more) so no test touches a real machine.
   `test_panel.py` runs `model.js` under node on the real `--json`, and is
   skipped without node.
+- `.github/workflows/ci.yml`: runs `./tests/run` on every push and pull
+  request, with node, so the panel's tests run too. Actions are pinned by
+  SHA. The `gh` token cannot push workflow files: push them over ssh.
 
 ## Rules that are never traded away
 
