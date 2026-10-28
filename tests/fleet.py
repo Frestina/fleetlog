@@ -6,7 +6,7 @@ home, and notify-send, systemctl, loginctl, systemd-run, xdg-terminal-exec
 and Omarchy's launchers only record their calls (omarchy-agent-prompt with
 the folder it ran in first). The default agent is claude, or none after
 no_agent(). The local machine is the first one, with its own
-home as HOME, and a Fleetwatch hosts file lists them all. Git reads a
+home as HOME, and the shared hosts file lists them all. Git reads a
 fixture global config with two identities, and never the real one.
 
     class MyTest(FleetTest):
@@ -81,12 +81,12 @@ class FakeFleet:
         return self.root / "homes" / name
 
     def hosts(self, text: str) -> None:
-        path = self.home(self.names[0]) / ".config" / "fleetwatch" / "hosts"
+        path = self.home(self.names[0]) / ".config" / "fleet" / "hosts"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
 
     def config(self, text: str) -> None:
-        path = self.home(self.names[0]) / ".config" / "git-fleetlog" / "config"
+        path = self.home(self.names[0]) / ".config" / "fleet" / "log" / "config.toml"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
 

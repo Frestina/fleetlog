@@ -37,8 +37,8 @@ regardless:
 3. Suggest what to do for each, smallest step first: push, commit, open a
    pull request, drop a stash that is already in, delete a branch that is
    merged, add a remote. Or leave it: a project meant to stay local can be
-   left out of git-fleetlog with `projects = <name>` under `[exclude]` in
-   `~/.config/git-fleetlog/config`, which the user edits with
+   left out of git-fleetlog with `projects = ["<name>"]` under `[exclude]`
+   in `~/.config/fleet/log/config.toml`, which the user edits with
    `git fleetlog config` on the machine the panel runs on.
 4. Do what the user agrees to, one step at a time, and show the result.
 

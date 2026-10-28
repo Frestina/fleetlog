@@ -29,8 +29,8 @@ notification on the machine the author is using.
 It is a command first: everything it does works from a terminal, on any
 Linux machine with Python. On Omarchy it is also a shell plugin, installed
 the way Fleetwatch is, and its panel shows the same facts. It works without
-Fleetwatch, and shares Fleetwatch's list of machines when Fleetwatch is
-there.
+Fleetwatch, and reads the list of machines every
+[Fleet](https://github.com/Frestina/fleet) tool shares.
 
 ### Terms
 
@@ -51,10 +51,9 @@ there.
   time window. For "where was I?" without a week of commits around it.
 - `git fleetlog latest`: the last weekly recap the main machine built (one ssh
   call to it), instead of reading every machine again.
-- `git fleetlog machines`: opens the list of machines in the same editor:
-  Fleetwatch's hosts file when it is there, else git-fleetlog's own, written
-  first with a commented guide and this machine. See
-  [Where things come from](#where-things-come-from).
+- `git fleetlog machines`: opens the shared hosts file in the same editor,
+  written first with a commented guide and this machine when there is none.
+  See [Where things come from](#where-things-come-from).
 - `git fleetlog config`: opens the config in Omarchy's default editor (or
   `$VISUAL`, `$EDITOR`), after writing a commented guide there when there is
   no config yet. It never changes a config that is there.
@@ -140,7 +139,7 @@ sorted by what needs doing.
 - **What it reads**: the last 7 days from every machine, once an hour at :20
   (`--json --reuse-from <the latest :20>`), and on the refresh button. Each
   monitor has an icon of its own, and they share one read: the command keeps
-  the last read in `~/.cache/git-fleetlog/read.json` and answers from it when
+  the last read in `~/.cache/fleet/log/read.json` and answers from it when
   it started at or after the time asked for, and a lock makes callers that
   come together wait for one read. A suspend over a :20 catches up within a
   minute of the resume. Opening the panel shows the last read and asks no
@@ -161,7 +160,7 @@ sorted by what needs doing.
     Fleetwatch: add the others, or let the agent find them.
   - The footer is Fleetwatch's, button for button. **Machines** (`m`) runs
     `git fleetlog machines` and **Settings** (`s`) `git fleetlog config`;
-    saving the config or either hosts file reads every machine again, once
+    saving the config or the hosts file reads every machine again, once
     for all monitors, so the panel shows it without a refresh.
     **Uninstall** runs `git fleetlog uninstall` in a floating terminal, since
     it asks first. **Ask agent** (`a`) is **Set up with agent**, and
@@ -219,22 +218,20 @@ The panel can hand what it shows to the user's default coding agent
 
 ## Where things come from
 
-- **Machines**: a hosts file, one machine a line as
-  `<label> <ssh target> [<hostname>]`. The line whose hostname is this
-  machine's, or whose target is `local`, is read locally, so the same file
-  works copied to every machine.
-  - With Fleetwatch, its hosts file (`~/.config/fleetwatch/hosts`), so the
-    fleet is defined in one place.
-  - Without it, git-fleetlog's own, `~/.config/git-fleetlog/hosts`, in the
-    same format. `git fleetlog machines` (the panel's Machines button) writes
-    it the first time, with a commented guide and this machine.
-  - When both are there, as when Fleetwatch comes later, both are read:
-    Fleetwatch's first, then the machines git-fleetlog's own adds. A label in
-    both is Fleetwatch's. So adding Fleetwatch never drops a machine, and
-    Machines opens Fleetwatch's file from then on.
-  - With neither, the fleet is this machine alone.
-  - More machines can be added under `[machines]` in the config, for a
-    machine only git-fleetlog should read.
+- **Machines**: the hosts file every Fleet tool shares,
+  `~/.config/fleet/hosts`, one machine a line as
+  `<label> <ssh target> [<hostname>]`, in the format of the Fleet repo's
+  [HOSTS.md](https://github.com/Frestina/fleet/blob/main/HOSTS.md). The line
+  whose hostname is this machine's (in full, or up to the first dot), or
+  whose target is `local`, is read locally, so the same file works copied to
+  every machine. Anything after the hostname is ignored.
+  - `git fleetlog machines` (the panel's Machines button) writes it the first
+    time, with the header HOSTS.md gives and this machine. It never writes to
+    a file that is there, or to a link to one.
+  - Without it, the fleet is this machine and those in the config.
+  - `[machines]` in the config adds machines only git-fleetlog should read,
+    and `skip` there leaves machines in the hosts file out, by label. A label
+    in both the hosts file and `[machines]` is an error.
 - **Repos**: found by searching folders on each machine, `~/Projects` and
   `~/dotfiles` by default, 4 levels deep. The config can add folders for every
   machine or for one machine, and exclude repos by folder or projects by name.
@@ -253,31 +250,34 @@ The panel can hand what it shows to the user's default coding agent
 
 ## Config
 
-`~/.config/git-fleetlog/config`, optional. Without it the defaults above
-apply. `git fleetlog config`, and the panel's settings button, open it, and
+`~/.config/fleet/log/config.toml`, optional, in TOML. Without it the
+defaults above apply. `git fleetlog config`, and the panel's settings button, open it, and
 write a guide there first when there is none: every setting commented out,
 so it changes nothing until one is turned on.
 
-```ini
+```toml
 [main]
-machine = homeserver       # where the weekly recap is built
+machine = "homeserver"            # where the weekly recap is built
 
 [folders]
-all = ~/Projects ~/dotfiles
-homeserver = ~/srv         # searched there as well as the folders for all
+all = ["~/Projects", "~/dotfiles"]
+homeserver = ["~/srv"]            # searched there as well as the folders for all
 
 [machines]
-# Machines only git-fleetlog reads, beyond the hosts file: <label> = <ssh target>
-nas = nas
-homeserver = local         # this machine
+# Machines only git-fleetlog reads, beyond the hosts file: <label> = "<ssh target>"
+nas = "nas"
+skip = ["pi"]                     # in the hosts file, but not read
 
 [exclude]
-projects = scratch         # by the name the recap shows, on every machine
-repos = ~/Projects/scratch # that repo, and every repo under it
+projects = ["scratch"]            # by the name the recap shows, on every machine
+repos = ["~/Projects/scratch"]    # that repo, and every repo under it
 
 [identity]
-emails = old-address@example.org
+emails = ["old-address@example.org"]
 ```
+
+A value of the wrong kind (text where a list goes, or the other way round)
+is an error that names the setting, as is a file that is not TOML.
 
 ## Install and remove
 
@@ -295,16 +295,18 @@ emails = old-address@example.org
 - The timers run the command where it was when they were installed. The
   plugin's folder keeps its path across updates, so they keep working.
 - **`git fleetlog uninstall`**, or Uninstall in the panel, lists what
-  git-fleetlog and its setup added on this machine: the timers, its config
-  (with its own hosts file), cache and state folders, and the
+  git-fleetlog and its setup added on this machine: the timers, its
+  `fleet/log` folders for config, cache and state, the shared hosts file
+  when no other Fleet tool's folder is left in `~/.config/fleet/`, and the
   `~/.local/bin/git-fleetlog` link when it points at this command. It asks
   whether to remove the plugin and all of that, only the plugin, or nothing,
   and only in a terminal. The plugin goes first (`omarchy plugin remove`),
   so a running panel cannot write its cache again; if it stays, nothing else
   goes. A folder that is a link, into dotfiles say, loses only the link, and
   a linked plugin only its link, never the checkout.
-- It never removes what it did not write: Fleetwatch's hosts file stays, and
-  a Hyprland binding for the panel is pointed out for the user to remove.
+- It never removes what another tool still needs, or what it did not write:
+  the hosts file stays while another Fleet tool's folder is there, and a
+  Hyprland binding for the panel is pointed out for the user to remove.
   Without the plugin, the clone stays for the user to delete. It acts on
   this machine only.
 
@@ -337,7 +339,7 @@ it. The weekly run must not be noticed there:
   scheduling, a 300 MB memory limit and a 15 minute time limit.
 - Only one run at a time, by a lock. A run that finds the lock taken exits.
 - It never starts, stops, restarts or signals anything, and only writes in
-  its own state folder, `~/.local/state/git-fleetlog/`.
+  its own state folder, `~/.local/state/fleet/log/`.
 - Far-side commands run under `nice -n 19` and idle IO too, so a viewer being
   read does not slow down either.
 - Machines not reached are tried again hourly at :45 until Sunday night, since

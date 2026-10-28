@@ -20,9 +20,10 @@ class UninstallTest(FleetTest):
         self.plugin = self.home / ".config" / "omarchy" / "plugins" / uninstall.PLUGIN_ID
         self.plugin.mkdir(parents=True)
         (self.plugin / "manifest.json").write_text("{}\n")
-        self.folders = [self.home / ".config" / "git-fleetlog",
-                        self.home / ".cache" / "git-fleetlog",
-                        self.home / ".local" / "state" / "git-fleetlog"]
+        self.folders = [self.home / ".config" / "fleet" / "log",
+                        self.home / ".cache" / "fleet" / "log",
+                        self.home / ".local" / "state" / "fleet" / "log"]
+        self.hosts = self.home / ".config" / "fleet" / "hosts"
         for folder in self.folders:
             folder.mkdir(parents=True)
             (folder / "kept").write_text("x\n")
@@ -54,8 +55,9 @@ class UninstallTest(FleetTest):
         self.assertEqual(code, 0, out)
         self.assertEqual(offered, [["Remove the plugin and all of this", "Remove only the plugin",
                                     "Cancel"]])
-        for line in ("the timers git-fleetlog-notify", "~/.config/git-fleetlog/",
-                     "~/.cache/git-fleetlog/", "~/.local/state/git-fleetlog/",
+        for line in ("the timers git-fleetlog-notify", "~/.config/fleet/log/",
+                     "~/.cache/fleet/log/", "~/.local/state/fleet/log/",
+                     "~/.config/fleet/hosts, your list of machines (no other Fleet tool",
                      "~/.local/bin/git-fleetlog, the link"):
             self.assertIn(line, out)
         self.assertEqual(self.fleet.calls("omarchy-plugin-remove"),
@@ -65,13 +67,29 @@ class UninstallTest(FleetTest):
             self.assertFalse(folder.exists(), folder)
         self.assertFalse(self.link.is_symlink())
         self.assertEqual(timers.installed(), [])
+        self.assertFalse(self.hosts.exists())
+        self.assertFalse(self.hosts.parent.exists())
 
-    def test_never_touches_the_fleetwatch_hosts_file(self):
-        hosts = self.home / ".config" / "fleetwatch" / "hosts"
-        before = hosts.read_text()
+    def test_keeps_the_hosts_file_while_another_fleet_tool_uses_it(self):
+        watch = self.hosts.parent / "watch"
+        watch.mkdir()
+        before = self.hosts.read_text()
         _, out, _ = self.run_it("Remove the plugin and all")
-        self.assertEqual(hosts.read_text(), before)
-        self.assertIn("~/.config/fleetwatch/hosts is Fleetwatch's, so it stays", out)
+        self.assertNotIn("your list of machines", out)
+        self.assertEqual(self.hosts.read_text(), before)
+        self.assertTrue(watch.exists())
+        self.assertIn("~/.config/fleet/hosts stays, for the other Fleet tools here "
+                      "(~/.config/fleet/watch)", out)
+
+    def test_a_linked_hosts_file_loses_only_the_link(self):
+        real = self.home / "dotfiles" / "fleet" / "hosts"
+        real.parent.mkdir(parents=True)
+        self.hosts.rename(real)
+        self.hosts.symlink_to(real)
+        _, out, _ = self.run_it("Remove the plugin and all")
+        self.assertIn("~/.config/fleet/hosts, only the link to ~/dotfiles/fleet/hosts", out)
+        self.assertFalse(self.hosts.is_symlink())
+        self.assertTrue(real.exists())
 
     def test_only_the_plugin_keeps_the_rest(self):
         code, _, _ = self.run_it("Remove only the plugin")
@@ -102,12 +120,12 @@ class UninstallTest(FleetTest):
 
     def test_a_linked_folder_loses_only_the_link(self):
         config = self.folders[0]
-        real = self.home / "dotfiles" / "git-fleetlog"
+        real = self.home / "dotfiles" / "fleet-log"
         real.parent.mkdir()
         config.rename(real)
         config.symlink_to(real)
         _, out, _ = self.run_it("Remove the plugin and all")
-        self.assertIn("~/.config/git-fleetlog, only the link to ~/dotfiles/git-fleetlog", out)
+        self.assertIn("~/.config/fleet/log, only the link to ~/dotfiles/fleet-log", out)
         self.assertFalse(config.is_symlink())
         self.assertTrue((real / "kept").exists())
 

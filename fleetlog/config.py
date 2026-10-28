@@ -1,51 +1,50 @@
 """Where git-fleetlog's machines, folders and identities come from.
 
-Machines come from the hosts files and from [machines] in git-fleetlog's
-own config, in that order. There are two hosts files, read in this order:
-Fleetwatch's, which Fleetwatch shares, and git-fleetlog's own, for someone
-without Fleetwatch; a label already listed in the first is skipped in the
-second. `git fleetlog machines` opens Fleetwatch's when it is there, and
-otherwise git-fleetlog's own, written first with this machine in it.
+Machines come from ~/.config/fleet/hosts, the list every Fleet tool shares
+(https://github.com/Frestina/fleet/blob/main/HOSTS.md), then from [machines]
+in git-fleetlog's own config, for machines only it reads. skip there leaves
+listed machines out, by label. `git fleetlog machines` opens the hosts file,
+written first with this machine in it when there is none.
 
-A line of a hosts file is <label> <ssh target> [<hostname>], and the line
-whose hostname is this machine's, or whose target is "local", is this
-machine; in [machines], the one whose target is "local". When none is, this
-machine is added under its hostname. With no file at all, the fleet is this
-machine alone.
+A line of the hosts file is <label> <ssh target> [<hostname>], and the line
+whose hostname is this machine's (in full, or up to the first dot), or whose
+target is "local", is this machine; in [machines], the one whose target is
+"local". When none is, this machine is added under its hostname. With no
+hosts file, the fleet is this machine and those in [machines].
 
 The author's commits are the ones whose author email is in an [identity
 "<name>"] section of the global git config (git-whoami's), in user.email, or
 in [identity] emails here. The identity's name is the account the recap shows.
 
-The config, ~/.config/git-fleetlog/config, is optional:
+The config, ~/.config/fleet/log/config.toml, is optional TOML:
 
     [main]
-    machine = homeserver
+    machine = "homeserver"
 
     [folders]
-    all = ~/Projects ~/dotfiles
-    homeserver = ~/srv
+    all = ["~/Projects", "~/dotfiles"]
+    homeserver = ["~/srv"]
 
     [machines]
-    nas = nas
-    laptop = local
+    nas = "nas"
+    skip = ["pi"]
 
     [exclude]
-    projects = scratch
-    repos = ~/Projects/scratch
+    projects = ["scratch"]
+    repos = ["~/Projects/scratch"]
 
     [identity]
-    emails = me@example.org
+    emails = ["me@example.org"]
 
 `git fleetlog config` writes TEMPLATE there when there is none, and opens it.
 """
 
-import configparser
 import os
 import shlex
 import shutil
 import socket
 import subprocess
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -53,59 +52,57 @@ FOLDERS = ("~/Projects", "~/dotfiles")
 
 TEMPLATE = """\
 # Settings for git-fleetlog. Every one is optional: remove the # in front of
-# a setting to turn it on. The panel reads every machine again when you save.
+# a setting to turn it on. Text goes in double quotes, lists in brackets. The
+# panel reads every machine again when you save.
 
 [exclude]
 # Projects to leave out, by the name the recap and the panel show.
-# projects = scratch old-experiment
+# projects = ["scratch", "old-experiment"]
 # Or by folder, on every machine: that repo, and every repo under it.
-# repos = ~/Projects/scratch
+# repos = ["~/Projects/scratch"]
 
 [folders]
 # Where repos are looked for, 4 levels deep. "all" is every machine and
-# replaces the default, ~/Projects ~/dotfiles. A line for one machine, by its
-# label, adds folders there. A folder can be a single repo.
-# all = ~/Projects ~/dotfiles
-# homeserver = ~/srv ~/notes
+# replaces the default, ["~/Projects", "~/dotfiles"]. A line for one machine,
+# by its label, adds folders there. A folder can be a single repo.
+# all = ["~/Projects", "~/dotfiles"]
+# homeserver = ["~/srv", "~/notes"]
 
 [main]
 # The machine that builds the weekly recap and keeps the latest one.
-# machine = homeserver
+# machine = "homeserver"
 
 [machines]
-# Machines are listed in the hosts file (`git fleetlog machines`, or Machines
-# in the panel). Here, more that only git-fleetlog reads: <label> = <ssh
-# target>, or local for this machine.
-# nas = nas
+# Machines are listed in ~/.config/fleet/hosts, which every Fleet tool reads
+# (`git fleetlog machines`, or Machines in the panel). Here, more that only
+# git-fleetlog reads: <label> = "<ssh target>", or "local" for this machine.
+# nas = "nas"
+# And the ones in the hosts file it leaves out, by label.
+# skip = ["pi"]
 
 [identity]
 # Author emails whose commits count as yours, beyond those in your git
 # config (user.email and git-whoami's [identity "<name>"] sections).
-# emails = old-address@example.org
+# emails = ["old-address@example.org"]
 """
 
-
+# The header every Fleet tool writes into a new hosts file (HOSTS.md).
 HOSTS_TEMPLATE = """\
-# The machines git-fleetlog reads, one per line:
+# Your machines, one per line, read by every Fleet tool:
 #
 #   <label>  <ssh target>  [<hostname>]
 #
-# The target is whatever you would type after `ssh`: a Host from
-# ~/.ssh/config, user@address, or an address. The line whose hostname is this
-# machine's, or whose target is "local", is read here without ssh, so the same
-# file works when copied to your other machines. The panel reads every machine
-# again when you save.
-#
-# Fleetwatch keeps the same list in ~/.config/fleetwatch/hosts. Once that file
-# is there, git-fleetlog reads it first, and this one for what it adds.
+# The target is whatever you would type after `ssh`. The line whose hostname
+# is the machine a tool runs on is read there without ssh, so the same file
+# works when copied to your other machines.
+# Format: https://github.com/Frestina/fleet/blob/main/HOSTS.md
 #
 # For example:
 #
 #   desktop     desktop.lan      desktop
 #   homeserver  me@192.0.2.10    homeserver
 
-# This machine.
-{name}  {name}  {name}
+{short}  {short}  {name}
 """
 
 
@@ -153,44 +150,43 @@ def config_home() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
 
 
-def state_dir() -> Path:
-    base = os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state"
-    return Path(base) / "git-fleetlog"
-
-
-def config_path() -> Path:
-    return config_home() / "git-fleetlog" / "config"
-
-
-def fleetwatch_hosts_path() -> Path:
-    return config_home() / "fleetwatch" / "hosts"
-
-
-def own_hosts_path() -> Path:
-    return config_home() / "git-fleetlog" / "hosts"
+def fleet_dir() -> Path:
+    """Where the Fleet tools keep the shared hosts file and their folders."""
+    return config_home() / "fleet"
 
 
 def hosts_path() -> Path:
-    """The hosts file `git fleetlog machines` opens: Fleetwatch's when it is
-    there, else git-fleetlog's own."""
-    shared = fleetwatch_hosts_path()
-    return shared if shared.exists() else own_hosts_path()
+    return fleet_dir() / "hosts"
+
+
+def config_path() -> Path:
+    return fleet_dir() / "log" / "config.toml"
+
+
+def state_dir() -> Path:
+    base = os.environ.get("XDG_STATE_HOME") or Path.home() / ".local" / "state"
+    return Path(base) / "fleet" / "log"
 
 
 def load() -> Config:
-    parser = configparser.ConfigParser(interpolation=None, delimiters=("=",),
-                                       inline_comment_prefixes=("#",))
-    parser.optionxform = str  # labels keep their case
     path = config_path()
     try:
-        parser.read_string(path.read_text(), source=str(path))
+        data = tomllib.loads(path.read_text())
     except FileNotFoundError:
-        pass
-    except (OSError, UnicodeDecodeError, configparser.Error) as e:
+        data = {}
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as e:
         raise ConfigError(f"{path} does not read: {e}") from None
 
-    machines = _hosts() + [Machine(label, target.strip(), local=target.strip() == "local")
-                           for label, target in _section(parser, "machines").items()]
+    extra = _section(data, "machines")
+    skip = set(_strings(extra, "machines", "skip"))
+    machines = _hosts()
+    for label, target in extra.items():
+        if label == "skip":
+            continue
+        if not isinstance(target, str):
+            raise ConfigError(f'{path}: [machines] {label} must be an ssh target in quotes, '
+                              f'like {label} = "{label}"')
+        machines.append(Machine(label, target.strip(), local=target.strip() == "local"))
     seen: set[str] = set()
     for m in machines:
         if m.label in seen:
@@ -200,17 +196,24 @@ def load() -> Config:
         seen.add(m.label)
     if not any(m.local for m in machines):
         machines.insert(0, Machine(_hostname(), "local", local=True))
+    machines = [m for m in machines if m.label not in skip]
+    if not machines:
+        raise ConfigError(f"{path}: [machines] skip leaves no machine to read")
 
-    folders = {label: tuple(value.split())
-               for label, value in _section(parser, "folders").items()}
-    main = parser.get("main", "machine", fallback=None)
+    folders = _section(data, "folders")
+    folders = {label: _strings(folders, "folders", label) for label in folders}
+    main = _section(data, "main").get("machine")
+    if main is not None and not isinstance(main, str):
+        raise ConfigError(f'{path}: [main] machine must be a label in quotes, like '
+                          f'machine = "homeserver"')
+    exclude = _section(data, "exclude")
     return Config(
         machines=tuple(machines),
         main=main.strip() if main else None,
         folders=folders,
-        exclude=tuple(parser.get("exclude", "repos", fallback="").split()),
-        exclude_projects=tuple(parser.get("exclude", "projects", fallback="").split()),
-        identities=identities(parser.get("identity", "emails", fallback="").split()),
+        exclude=_strings(exclude, "exclude", "repos"),
+        exclude_projects=_strings(exclude, "exclude", "projects"),
+        identities=identities(list(_strings(_section(data, "identity"), "identity", "emails"))),
     )
 
 
@@ -227,13 +230,14 @@ def ensure() -> Path:
 
 
 def ensure_hosts() -> Path:
-    """The hosts file, git-fleetlog's own written first with this machine in
-    it when there is none."""
+    """The shared hosts file, written first with this machine in it when there
+    is none. One that is there, or a link to one, is never replaced."""
     path = hosts_path()
     path.parent.mkdir(parents=True, exist_ok=True)
+    name = socket.gethostname()
     try:
         with open(path, "x") as f:
-            f.write(HOSTS_TEMPLATE.format(name=_hostname()))
+            f.write(HOSTS_TEMPLATE.format(short=name.split(".")[0], name=name))
     except FileExistsError:
         pass
     return path
@@ -247,8 +251,19 @@ def editor_command(path: Path, inline: bool) -> list[str]:
     return [*shlex.split(editor), str(path)]
 
 
-def _section(parser: configparser.ConfigParser, name: str) -> dict[str, str]:
-    return dict(parser.items(name)) if parser.has_section(name) else {}
+def _section(data: dict, name: str) -> dict:
+    value = data.get(name, {})
+    if not isinstance(value, dict):
+        raise ConfigError(f"{config_path()}: {name} must be a section, [{name}]")
+    return value
+
+
+def _strings(section: dict, name: str, key: str) -> tuple[str, ...]:
+    value = section.get(key, [])
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise ConfigError(f'{config_path()}: [{name}] {key} must be a list in brackets, '
+                          f'like {key} = ["one", "two"]')
+    return tuple(value)
 
 
 def _hostname() -> str:
@@ -256,22 +271,15 @@ def _hostname() -> str:
 
 
 def _hosts() -> list[Machine]:
-    """Fleetwatch's hosts file, then the labels git-fleetlog's own adds."""
-    out: list[Machine] = []
-    for path in (fleetwatch_hosts_path(), own_hosts_path()):
-        listed = {m.label for m in out}
-        out += [m for m in _hosts_in(path) if m.label not in listed]
-    return out
-
-
-def _hosts_in(path: Path) -> list[Machine]:
+    """The machines in the hosts file, none when there is no file."""
+    path = hosts_path()
     try:
         text = path.read_text()
     except FileNotFoundError:
         return []
     except (OSError, UnicodeDecodeError) as e:
         raise ConfigError(f"{path} does not read: {e}") from None
-    here = _hostname()
+    here = socket.gethostname()
     out = []
     for n, line in enumerate(text.splitlines(), 1):
         words = line.split("#", 1)[0].split()
@@ -281,7 +289,8 @@ def _hosts_in(path: Path) -> list[Machine]:
             raise ConfigError(f"{path} line {n}: needs a label and an ssh target")
         label, target = words[:2]
         hostname = words[2] if len(words) > 2 else None
-        out.append(Machine(label, target, local=target == "local" or hostname == here))
+        out.append(Machine(label, target, local=target == "local"
+                           or hostname in (here, here.split(".")[0])))
     return out
 
 

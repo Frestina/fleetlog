@@ -19,7 +19,7 @@ class RecapTest(FleetTest):
         self.fleet.commit(repo, "First")
         bare = self.fleet.remote(repo)
         other = self.fleet.clone(bare, "bench", "Code/renamed")
-        self.fleet.config("[folders]\nall = ~/Projects ~/Code\n")
+        self.fleet.config('[folders]\nall = ["~/Projects", "~/Code"]\n')
         self.fleet.commit(other, "Made on bench")
         _, projects = self.build()
         [p] = projects
@@ -61,7 +61,7 @@ class RecapTest(FleetTest):
     def test_exclude(self):
         self.fleet.repo("anvil", "Projects/keep")
         self.fleet.repo("anvil", "Projects/scratch/thing")
-        self.fleet.config("[exclude]\nrepos = ~/Projects/scratch\n")
+        self.fleet.config('[exclude]\nrepos = ["~/Projects/scratch"]\n')
         _, projects = self.build()
         self.assertEqual([p.name for p in projects], ["keep"])
 
@@ -69,7 +69,7 @@ class RecapTest(FleetTest):
         self.fleet.repo("anvil", "Projects/keep")
         self.fleet.repo("anvil", "Projects/scratch")
         self.fleet.repo("bench", "Projects/old/scratch")
-        self.fleet.config("[exclude]\nprojects = scratch\n")
+        self.fleet.config('[exclude]\nprojects = ["scratch"]\n')
         _, projects = self.build()
         self.assertEqual([p.name for p in projects], ["keep"])
 

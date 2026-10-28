@@ -28,7 +28,7 @@ from fleetlog.config import Config
 LATEST = "latest.json"
 WEEK = 7 * 24 * 3600
 RETRY_FOR = 3 * 24 * 3600  # after the window ends
-REMOTE = 'cat -- "${XDG_STATE_HOME:-$HOME/.local/state}/git-fleetlog/latest.json"'
+REMOTE = 'cat -- "${XDG_STATE_HOME:-$HOME/.local/state}/fleet/log/latest.json"'
 TIMEOUT = 30
 
 

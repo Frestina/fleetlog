@@ -36,13 +36,11 @@ Panel {
   readonly property string command: decodeURIComponent(
     Qt.resolvedUrl("../bin/git-fleetlog").toString().replace(/^file:\/\//, ""))
   readonly property string fontFamily: root.bar ? root.bar.fontFamily : Style.font.family
-  // Match config_path(), fleetwatch_hosts_path() and own_hosts_path() in
-  // fleetlog/config.py.
+  // Match config_path() and hosts_path() in fleetlog/config.py.
   readonly property string configHome: Quickshell.env("XDG_CONFIG_HOME")
     || Quickshell.env("HOME") + "/.config"
-  readonly property string configPath: root.configHome + "/git-fleetlog/config"
-  readonly property string fleetwatchHostsPath: root.configHome + "/fleetwatch/hosts"
-  readonly property string ownHostsPath: root.configHome + "/git-fleetlog/hosts"
+  readonly property string configPath: root.configHome + "/fleet/log/config.toml"
+  readonly property string hostsPath: root.configHome + "/fleet/hosts"
 
   readonly property string glyphCommit: String.fromCodePoint(0xF0718)
   readonly property string glyphRefresh: String.fromCodePoint(0xF0450)
@@ -79,7 +77,7 @@ Panel {
   property bool procStarted: false
   property int procExitCode: 0
 
-  // When the config or a hosts file was saved (Unix seconds); see fileSaved().
+  // When the config or the hosts file was saved (Unix seconds); see fileSaved().
   property real savedAt: 0
 
   // Projects opened to show their commits, by key; kept across reads.
@@ -270,8 +268,8 @@ Panel {
     stderr: StdioCollector { id: errOut; waitForEnd: true }
   }
 
-  // The config and both hosts files, Fleetwatch's and git-fleetlog's own:
-  // saving any of them reads every machine again. A watch takes on a missing
+  // The config and the hosts file the Fleet tools share: saving either reads
+  // every machine again. A watch takes on a missing
   // file only when its folder is there, so once the command has had time to
   // write one, the missing ones are watched again.
   component WatchedFile: FileView {
@@ -285,13 +283,12 @@ Panel {
   // An inline component does not see this file's ids, so each one says
   // what a save does.
   WatchedFile { id: configFile; path: root.configPath; onFileChanged: root.fileSaved() }
-  WatchedFile { id: fleetwatchHosts; path: root.fleetwatchHostsPath; onFileChanged: root.fileSaved() }
-  WatchedFile { id: ownHosts; path: root.ownHostsPath; onFileChanged: root.fileSaved() }
+  WatchedFile { id: hostsFile; path: root.hostsPath; onFileChanged: root.fileSaved() }
 
   Timer {
     id: watchRetry
     interval: 2000
-    onTriggered: [configFile, fleetwatchHosts, ownHosts].forEach(function(f) {
+    onTriggered: [configFile, hostsFile].forEach(function(f) {
       if (!f.found) f.reload()
     })
   }

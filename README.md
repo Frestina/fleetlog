@@ -24,7 +24,8 @@ It reads machines over ssh, one call per machine, and changes nothing: no
 fetch, no pull, no push. The other machines need only bash and git, and no
 Omarchy. It doesn't need
 [Fleetwatch](https://github.com/Frestina/omarchy-fleetwatch) either, and
-shares its list of machines when you have it.
+shares one list of machines with it and the other
+[Fleet](https://github.com/Frestina/fleet) tools.
 
 On Omarchy, the bar icon counts the projects that need attention:
 
@@ -115,15 +116,20 @@ o.bind("SUPER + CTRL + G", "Fleetlog", "omarchy-shell shell toggle io.github.fre
 git fleetlog machines     # opens the list in your editor
 ```
 
+The list is `~/.config/fleet/hosts`, which every
+[Fleet](https://github.com/Frestina/fleet) tool reads, so you list your
+machines once. If you use one already, git-fleetlog reads the list that is
+there; otherwise it is written with this machine in it the first time you
+open it.
+
 One machine a line, `<label> <ssh target> [<hostname>]`, where the target is
 whatever you would type after `ssh`. The line whose hostname is this
 machine's is read here, without ssh, so the same list works on every machine.
-The panel reads every machine again when you save.
+The panel reads every machine again when you save. The full format is in
+[HOSTS.md](https://github.com/Frestina/fleet/blob/main/HOSTS.md).
 
-With Fleetwatch, that is Fleetwatch's hosts file, `~/.config/fleetwatch/hosts`,
-so you list your machines once. Without it, git-fleetlog keeps its own,
-`~/.config/git-fleetlog/hosts`, written with this machine in it the first time
-you open it. If you add Fleetwatch later, git-fleetlog reads both.
+To read a machine that is not in the list, or leave one out, see `[machines]`
+under [Settings](#settings).
 
 Your commits are the ones whose author email is in your global git config:
 `user.email` and every `[identity "<name>"] email`.
@@ -157,7 +163,7 @@ git fleetlog timers install main
 
 It builds the recap Fridays at 15:15 at the lowest priority, and tries
 machines it could not reach again every hour until Sunday. On the machines
-you sit at, with `[main] machine = <its label>` in the config:
+you sit at, with `machine = "<its label>"` under `[main]` in the config:
 
 ```
 git fleetlog timers install viewer
@@ -170,23 +176,28 @@ click it away, and clicking it opens the recap in a terminal.
 ## Settings
 
 **Settings** at the bottom of the panel, or `git fleetlog config`, opens
-`~/.config/git-fleetlog/config`, with every setting commented out the first
-time. Remove the `#` in front of one to turn it on:
+`~/.config/fleet/log/config.toml`, with every setting commented out the first
+time. Remove the `#` in front of one to turn it on. It is TOML: text in
+double quotes, lists in brackets.
 
-```ini
+```toml
 [main]
-machine = homeserver        # builds the weekly recap
+machine = "homeserver"              # builds the weekly recap
 
 [folders]
-all = ~/Projects ~/dotfiles # where repos are looked for, 4 levels deep
-homeserver = ~/srv          # more on one machine
+all = ["~/Projects", "~/dotfiles"]  # where repos are looked for, 4 levels deep
+homeserver = ["~/srv"]              # more on one machine
 
 [machines]
-nas = nas                   # a machine only git-fleetlog reads, beyond the list
+nas = "nas"                         # a machine only git-fleetlog reads
+skip = ["pi"]                       # one in the list it leaves out
 
 [exclude]
-projects = scratch          # by the name the recap shows
-repos = ~/Projects/scratch  # that repo, and every repo under it
+projects = ["scratch"]              # by the name the recap shows
+repos = ["~/Projects/scratch"]      # that repo, and every repo under it
+
+[identity]
+emails = ["old-address@example.org"]  # more commits that are yours
 ```
 
 ## What it runs and stores
@@ -198,10 +209,11 @@ repos = ~/Projects/scratch  # that repo, and every repo under it
   others over one `ssh -T -o BatchMode=yes -o ForwardAgent=no -o
   IdentityAgent=none` call, at the lowest priority. It reads what is on disk
   and changes nothing.
-- The last read is kept in `~/.cache/git-fleetlog/`, and the weekly recap in
-  `~/.local/state/git-fleetlog/`.
-- Your settings and its own list of machines are in `~/.config/git-fleetlog/`,
-  and are only ever written when you open them for the first time.
+- The last read is kept in `~/.cache/fleet/log/`, and the weekly recap in
+  `~/.local/state/fleet/log/`.
+- Your settings are in `~/.config/fleet/log/`, and the list of machines in
+  `~/.config/fleet/hosts`. Each is only ever written when you open it for the
+  first time.
 - **Set up with agent**, **Ask agent** and the agent buttons run
   `omarchy agent` with your default coding agent, which sends what it reads
   to that agent's provider like any other session.
@@ -224,10 +236,13 @@ Choose **Uninstall** at the bottom of the panel, or run:
 git fleetlog uninstall
 ```
 
-It lists what git-fleetlog added on this machine (its timers, config, cache
-and state, and the `~/.local/bin` link) and asks whether to remove the plugin
-and all of that, or only the plugin. Fleetwatch's hosts file stays, and a
-keybinding you added is pointed out for you to remove.
+It lists what git-fleetlog added on this machine (its timers, its
+`fleet/log` folders in `~/.config`, `~/.cache` and `~/.local/state`, and the
+`~/.local/bin` link) and asks whether to remove the plugin and all of that, or
+only the plugin. The list of machines, `~/.config/fleet/hosts`, goes too only
+when no other Fleet tool's folder is left beside it. A folder or file that is
+a link, into your dotfiles say, loses only the link. A keybinding you added
+is pointed out for you to remove.
 
 ## Development
 

@@ -64,12 +64,11 @@ def parser() -> argparse.ArgumentParser:
         p = sub.add_parser(name, help=what, description=what)
         p.add_argument("--json", action="store_true", help="exact data instead of Markdown")
     sub.add_parser("machines", help="open the list of machines in the editor",
-                   description="Opens Fleetwatch's hosts file, ~/.config/fleetwatch/hosts, "
-                               "when it is there, and otherwise git-fleetlog's own, "
-                               "~/.config/git-fleetlog/hosts, written first with this machine "
-                               "in it. One machine a line: <label> <ssh target> [<hostname>].")
+                   description="Opens ~/.config/fleet/hosts, the list every Fleet tool "
+                               "reads, written first with this machine in it when there is "
+                               "none. One machine a line: <label> <ssh target> [<hostname>].")
     sub.add_parser("config", help="open the config in the editor, with a guide when it is new",
-                   description="Opens ~/.config/git-fleetlog/config in Omarchy's editor, or "
+                   description="Opens ~/.config/fleet/log/config.toml in Omarchy's editor, or "
                                "$VISUAL or $EDITOR, after writing a commented guide there when "
                                "there is no config yet.")
     p = sub.add_parser("ask-agent", help="start your coding agent, on the setup or on one repo",
@@ -95,7 +94,8 @@ def parser() -> argparse.ArgumentParser:
                    description="Lists what git-fleetlog and its setup added on this machine "
                                "(timers, config, cache, state, the ~/.local/bin link), asks, "
                                "then removes the Omarchy plugin and, if you say so, all of "
-                               "that. Fleetwatch's hosts file stays.")
+                               "that. The shared hosts file stays while another Fleet tool "
+                               "uses it.")
     return out
 
 

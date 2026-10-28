@@ -3,15 +3,16 @@ machine, removed after asking. The panel's Uninstall button runs it in a
 terminal.
 
 It lists what is there: the timers install wrote, git-fleetlog's config,
-cache and state folders, and the ~/.local/bin/git-fleetlog link when it
-points at this command. Then it asks whether to remove the plugin and all of
+cache and state folders (fleet/log in each), the shared hosts file when no
+other Fleet tool's folder is left beside it, and the
+~/.local/bin/git-fleetlog link when it points at this command. Then it asks whether to remove the plugin and all of
 that, or only the plugin. The plugin goes first, so a running panel cannot
 write its cache again. A folder that is a link, into dotfiles say, loses only
 the link.
 
-It never touches what it did not write: Fleetwatch's hosts file, which
-Fleetwatch shares, or a Hyprland binding the user added for the panel, which
-it only points out. A checkout that is not the plugin, as on a machine
+It never touches what it did not write, or what another tool still needs:
+the hosts file while another Fleet tool uses it, or a Hyprland binding the
+user added for the panel, which it only points out. A checkout that is not the plugin, as on a machine
 without Omarchy, stays where it is: the user deletes the folder.
 """
 
@@ -64,10 +65,31 @@ def plan() -> Plan:
                         folder.unlink))
         elif folder.exists():
             out.append((f"{tilde(folder)}/", lambda folder=folder: shutil.rmtree(folder)))
+    # The hosts file is shared: only when no other Fleet tool's folder is left.
+    hosts = config.hosts_path()
+    if (hosts.exists() or hosts.is_symlink()) and not other_tools():
+        what = (f"only the link to {tilde(hosts.resolve())}" if hosts.is_symlink()
+                else "your list of machines")
+        out.append((f"{tilde(hosts)}, {what} (no other Fleet tool uses it)", remove_hosts))
     link = link_path()
     if our_link(link):
         out.append((f"{tilde(link)}, the link to the git-fleetlog command", link.unlink))
     return out
+
+
+def other_tools() -> list[Path]:
+    """The other Fleet tools' folders beside the hosts file, such as fleet/watch."""
+    d = config.fleet_dir()
+    ours = config.config_path().parent
+    return sorted(p for p in d.iterdir() if p.is_dir() and p != ours) if d.is_dir() else []
+
+
+def remove_hosts() -> None:
+    config.hosts_path().unlink()
+    try:
+        config.fleet_dir().rmdir()
+    except OSError:
+        pass
 
 
 def bindings() -> list[str]:
@@ -158,8 +180,10 @@ def notes(had_plugin: bool, kept_timers: bool) -> None:
               "Install them again from a clone, or remove them with: systemctl --user "
               "disable --now git-fleetlog-weekly.timer git-fleetlog-retry.timer "
               "git-fleetlog-notify.timer")
-    if config.fleetwatch_hosts_path().exists():
-        print(f"{tilde(config.fleetwatch_hosts_path())} is Fleetwatch's, so it stays.")
+    hosts = config.hosts_path()
+    if (hosts.exists() or hosts.is_symlink()) and (others := other_tools()):
+        print(f"{tilde(hosts)} stays, for the other Fleet tools here "
+              f"({', '.join(tilde(p) for p in others)}).")
     if found := bindings():
         print(f"The panel's keybinding is yours to remove: {', '.join(found)}.")
     if not had_plugin:

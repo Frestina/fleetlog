@@ -67,11 +67,11 @@ class WeeklyTest(FleetTest):
                 weekly.weekly(self.fleet.load())
 
     def test_fetch_from_the_main_machine_over_one_cat(self):
-        self.fleet.config("[main]\nmachine = bench\n")
+        self.fleet.config('[main]\nmachine = "bench"\n')
         with self.assertRaisesRegex(weekly.NoRecap, "no weekly recap has been built on bench"):
             weekly.fetch(self.fleet.load())
         data = {"schema": 1, "since": 1, "until": 2, "facts": [{"label": "anvil"}]}
-        path = self.fleet.home("bench") / ".local" / "state" / "git-fleetlog" / weekly.LATEST
+        path = self.fleet.home("bench") / ".local" / "state" / "fleet" / "log" / weekly.LATEST
         path.parent.mkdir(parents=True)
         path.write_text(json.dumps(data))
         self.fleet.clear_calls()
@@ -80,14 +80,14 @@ class WeeklyTest(FleetTest):
         self.assertEqual(call[-1], weekly.REMOTE)
 
     def test_fetch_from_an_unreachable_main_machine(self):
-        self.fleet.config("[main]\nmachine = bench\n")
+        self.fleet.config('[main]\nmachine = "bench"\n')
         self.fleet.unreachable("bench")
         with self.assertRaises(weekly.Unreachable) as caught:
             weekly.fetch(self.fleet.load())
         self.assertNotIsInstance(caught.exception, weekly.Offline)
 
     def test_fetch_while_this_machine_is_offline(self):
-        self.fleet.config("[main]\nmachine = bench\n")
+        self.fleet.config('[main]\nmachine = "bench"\n')
         self.fleet.offline()
         with self.assertRaisesRegex(weekly.Offline, "this machine is offline"):
             weekly.fetch(self.fleet.load())

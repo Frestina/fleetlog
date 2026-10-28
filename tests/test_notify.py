@@ -63,7 +63,7 @@ class NotifyTest(FleetTest):
         self.assertEqual(self.fleet.calls("notify-send"), [])
 
     def remote_main(self):
-        self.fleet.config("[main]\nmachine = bench\n")
+        self.fleet.config('[main]\nmachine = "bench"\n')
         self.cfg = self.fleet.load()
 
     def test_unreachable_main_machine_is_said_once_a_day(self):

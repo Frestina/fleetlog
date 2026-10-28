@@ -17,12 +17,12 @@ up from `bin/`) explain everything it does.
 You may have been started with approvals switched off. Hold yourself to these
 regardless:
 
-- Write only git-fleetlog's own files: the config,
-  `~/.config/git-fleetlog/config`, and its list of machines,
-  `~/.config/git-fleetlog/hosts`. Edit them in place and keep their comments.
-  Change anything else only once the user says yes to that exact change:
-  Fleetwatch's hosts file (`~/.config/fleetwatch/hosts`, which Fleetwatch
-  shares), the timers (`git fleetlog timers install main|viewer`), the link
+- Write only the config, `~/.config/fleet/log/config.toml`, and the list of
+  machines, `~/.config/fleet/hosts` (under `$XDG_CONFIG_HOME` if it is set).
+  Edit them in place and keep their comments. The list is shared with the
+  other Fleet tools: add and change lines, never reorder or remove the
+  user's. Change anything else only once the user says yes to that exact
+  change: the timers (`git fleetlog timers install main|viewer`), the link
   for [the terminal command](#the-terminal-command).
 - Never change a repo: no commit, push, pull or anything else that writes.
   That is git-fleetlog's first rule, and the agent button next to each project
@@ -48,13 +48,15 @@ One machine a line, `<label>  <ssh target>  [<hostname>]`:
   for the machine git-fleetlog runs on is read locally, and the same file
   works when copied to each listed machine. Fill it in for every line.
 
-It is Fleetwatch's hosts file when that is there, and otherwise
-git-fleetlog's own; the prompt names the one in use. When both are there,
-both are read: Fleetwatch's first, then the machines git-fleetlog's own adds.
-If the list in use is Fleetwatch's, a change there changes what Fleetwatch
-watches too: say so, and ask before writing it. A machine only git-fleetlog
-should read goes in its own hosts file, or under `[machines]` in the config
-as `<label> = <ssh target>`.
+Every Fleet tool reads this list, so a change there changes what the
+others, such as Fleetwatch, read too. Another tool's folder next to it in
+`~/.config/fleet/` (`watch`, `drop`) means it is in use: say so, and ask
+before writing. The full format is in
+[HOSTS.md](https://github.com/Frestina/fleet/blob/main/HOSTS.md).
+
+For git-fleetlog alone, use `[machines]` in the config: a machine only it
+should read as `<label> = "<ssh target>"`, and machines in the list it should
+leave out as `skip = ["<label>", ...]`.
 
 ## Set up already?
 
@@ -130,11 +132,14 @@ it works.
 
 ## Common questions
 
-- **A project should not be listed**: `projects = <name>` under `[exclude]`,
-  by the name the panel shows; or `repos = <folder>` for a folder on every
-  machine. Several are separated by spaces.
+- **The config's format**: it is TOML. Text goes in double quotes and lists
+  in brackets: `machine = "homeserver"`, `projects = ["scratch", "old"]`.
+  git-fleetlog names the setting when a value is of the wrong kind.
+- **A project should not be listed**: `projects = ["<name>"]` under
+  `[exclude]`, by the name the panel shows; or `repos = ["<folder>"]` for a
+  folder on every machine.
 - **A repo is missing**: repos are found in `~/Projects` and `~/dotfiles`, 4
-  levels deep. `all = ...` under `[folders]` replaces those for every
+  levels deep. `all = [...]` under `[folders]` replaces those for every
   machine; a line named after one machine's label adds folders there.
 - **A machine is missing**: add it to the list of machines, as in
   [The list of machines](#the-list-of-machines).
@@ -142,10 +147,10 @@ it works.
   connection, after asking, as in step 3 of [First setup](#first-setup).
 - **Commits are not counted as the user's**: the author email must be in the
   global git config (`user.email`, or git-whoami's `[identity "<name>"]
-  email`), or under `[identity]` as `emails = ...` in the config.
-- **The weekly recap**: one always-on machine is `[main] machine = <label>`,
-  with `git fleetlog timers install main` there; the machines the user sits at
-  get `git fleetlog timers install viewer`. Install only on a yes, and only on
-  this machine; tell the user the command for the others.
+  email`), or under `[identity]` as `emails = [...]` in the config.
+- **The weekly recap**: one always-on machine is `machine = "<label>"` under
+  `[main]`, with `git fleetlog timers install main` there; the machines the
+  user sits at get `git fleetlog timers install viewer`. Install only on a
+  yes, and only on this machine; tell the user the command for the others.
 - **Removing it**: Uninstall in the panel, or `git fleetlog uninstall`, asks
   first and removes only what git-fleetlog added on this machine.

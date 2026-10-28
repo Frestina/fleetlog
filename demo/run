@@ -17,8 +17,8 @@ cd "$(dirname "$0")/.."
 region=${1:?usage: demo/run "<x>,<y> <w>x<h>" [<output>]}
 output=${2:-preview.png}
 id=io.github.frestina.fleetlog
-cache=${XDG_CACHE_HOME:-$HOME/.cache}/git-fleetlog/read.json
-config=${XDG_CONFIG_HOME:-$HOME/.config}/git-fleetlog/config
+cache=${XDG_CACHE_HOME:-$HOME/.cache}/fleet/log/read.json
+config=${XDG_CONFIG_HOME:-$HOME/.config}/fleet/log/config.toml
 for cmd in python3 qs grim pgrep; do command -v "$cmd" >/dev/null || { echo "demo: missing $cmd" >&2; exit 1; }; done
 pid=$(pgrep -f '^quickshell .*omarchy/shell' | head -1 || true)
 [ -n "$pid" ] || { echo "demo: omarchy-shell is not running" >&2; exit 1; }
@@ -69,7 +69,7 @@ for m in data["facts"]:
 open(sys.argv[2], "w").write(json.dumps(data) + "\n")
 PY
 # In place, so the panel's watch sees the save.
-printf '[identity]\nemails = personal work\n' > "$config"
+printf '[identity]\nemails = ["personal", "work"]\n' > "$config"
 settle
 
 qs ipc --pid "$pid" call "$id" open

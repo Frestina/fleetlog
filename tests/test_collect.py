@@ -151,7 +151,7 @@ class CollectTest(FleetTest):
     def test_folders_from_the_config_and_missing_ones(self):
         self.fleet.repo("bench", "Projects/a")
         self.fleet.repo("bench", "srv/b")
-        self.fleet.config("[folders]\nbench = ~/srv\n")
+        self.fleet.config('[folders]\nbench = ["~/srv"]\n')
         facts = collect.collect_all(self.fleet.load(), *ALL)
         self.assertEqual(sorted(os.path.basename(r["path"]) for r in facts[1]["repos"]),
                          ["a", "b"])
@@ -159,13 +159,13 @@ class CollectTest(FleetTest):
 
     def test_overlapping_folders_read_a_repo_once(self):
         self.fleet.repo("anvil", "Projects/Personal/a")
-        self.fleet.config("[folders]\nall = ~/Projects ~/Projects/Personal\n")
+        self.fleet.config('[folders]\nall = ["~/Projects", "~/Projects/Personal"]\n')
         facts = collect.collect_all(self.fleet.load(), *ALL)[0]
         self.assertEqual(len(facts["repos"]), 1)
 
     def test_machines_from_the_config_alone(self):
-        (self.fleet.home("anvil") / ".config" / "fleetwatch" / "hosts").unlink()
-        self.fleet.config("[machines]\nbench = bench\nhere = local  # this one\n")
+        (self.fleet.home("anvil") / ".config" / "fleet" / "hosts").unlink()
+        self.fleet.config('[machines]\nbench = "bench"\nhere = "local"  # this one\n')
         cfg = self.fleet.load()
         self.assertEqual([(m.label, m.local) for m in cfg.machines],
                          [("bench", False), ("here", True)])

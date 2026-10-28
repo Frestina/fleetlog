@@ -18,11 +18,11 @@ class DemoTest(unittest.TestCase):
         fixture = json.loads(FIXTURE.read_text())
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
-            (home / ".cache" / "git-fleetlog").mkdir(parents=True)
-            (home / ".cache" / "git-fleetlog" / "read.json").write_text(FIXTURE.read_text())
-            (home / ".config" / "git-fleetlog").mkdir(parents=True)
-            (home / ".config" / "git-fleetlog" / "config").write_text(
-                "[identity]\nemails = personal work\n")
+            (home / ".cache" / "fleet" / "log").mkdir(parents=True)
+            (home / ".cache" / "fleet" / "log" / "read.json").write_text(FIXTURE.read_text())
+            (home / ".config" / "fleet" / "log").mkdir(parents=True)
+            (home / ".config" / "fleet" / "log" / "config.toml").write_text(
+                '[identity]\nemails = ["personal", "work"]\n')
             env = {"PATH": os.environ["PATH"], "HOME": tmp, "GIT_CONFIG_GLOBAL": os.devnull,
                    "XDG_CONFIG_HOME": str(home / ".config"),
                    "XDG_CACHE_HOME": str(home / ".cache")}

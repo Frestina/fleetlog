@@ -24,7 +24,7 @@ NAME = "read.json"
 
 def cache_dir() -> Path:
     base = os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache"
-    return Path(base) / "git-fleetlog"
+    return Path(base) / "fleet" / "log"
 
 
 def read(cfg: Config, reuse_from: int) -> dict:
