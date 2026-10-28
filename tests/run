@@ -12,7 +12,7 @@ python3 -m unittest discover -s tests -t . || status=1
 # Shell scripts, and the fakes in tests/bin (such as ssh), which have no .sh.
 mapfile -d '' scripts < <(find . -name .git -prune -o -type f \
   \( -name '*.sh' -o -path './tests/bin/*' \) -print0)
-scripts+=(./tests/run)
+scripts+=(./tests/run ./demo/run)
 
 for f in "${scripts[@]}"; do
   bash -n "$f" || status=1

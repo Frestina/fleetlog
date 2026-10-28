@@ -4,6 +4,8 @@
 
 <p align="center"><a href="https://github.com/tcballard/omarchy-badges"><img alt="Built for Omarchy: Plugin" height="20" src="https://raw.githubusercontent.com/tcballard/omarchy-badges/75975e5b5bf75e7ede3764bcd2950046f7abfe2c/badges/v1/omarchy-plugin.svg"></a></p>
 
+<p align="center"><img alt="The git-fleetlog panel for a fictional fleet: dotfiles, invoice-tool and weather-widget need attention, each with what is left off on which machine and an agent button; recipe-site and homelab are all pushed; one machine was not reached. The footer has Machines, Settings, Uninstall and Ask agent" src="preview.png" width="400"></p>
+
 After a few days away from a project it is hard to remember where it
 stopped: which machine has the newest commits, what was never pushed, and
 what you finished that week at all. git-fleetlog reads every machine you list
@@ -244,6 +246,10 @@ omarchy plugin enable io.github.frestina.fleetlog
 The shell does not reload a linked plugin by itself: run `omarchy restart
 shell` after a change to `panel/`. [SPEC.md](SPEC.md) has every decision
 behind it.
+
+`demo/run` retakes `preview.png` from the running panel, with the fictional
+fleet in `demo/fixtures/read.json` instead of yours, and puts your own back
+afterwards.
 
 ## Licence
 

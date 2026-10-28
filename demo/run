@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Capture preview.png from the running panel showing a fictional fleet.
+#
+# The panel shows the command's last read, which it takes from the cache
+# while the read is new enough. This writes demo/fixtures/read.json there,
+# moved so it ends two minutes from now, and swaps the config for one whose
+# identities are the fixture's ("personal" and "work"). Saving the config
+# makes the panel read again, which serves it the fixture. It then opens the
+# panel over IPC, captures it, and puts the real cache and config back, which
+# makes the panel read every machine again. Nothing else on the desktop
+# changes, and the shell is not restarted. Check the image before committing
+# it: it must show only the fictional fleet.
+#
+# Usage: demo/run "<x>,<y> <w>x<h>" [<output>]   (grim region around the panel)
+set -euo pipefail
+cd "$(dirname "$0")/.."
+region=${1:?usage: demo/run "<x>,<y> <w>x<h>" [<output>]}
+output=${2:-preview.png}
+id=io.github.frestina.fleetlog
+cache=${XDG_CACHE_HOME:-$HOME/.cache}/git-fleetlog/read.json
+config=${XDG_CONFIG_HOME:-$HOME/.config}/git-fleetlog/config
+for cmd in python3 qs grim pgrep; do command -v "$cmd" >/dev/null || { echo "demo: missing $cmd" >&2; exit 1; }; done
+pid=$(pgrep -f '^quickshell .*omarchy/shell' | head -1 || true)
+[ -n "$pid" ] || { echo "demo: omarchy-shell is not running" >&2; exit 1; }
+qs ipc --pid "$pid" show | grep -q "target $id" || { echo "demo: $id is not loaded in the shell" >&2; exit 1; }
+
+runtime=${XDG_RUNTIME_DIR:?}
+stale=$(compgen -G "$runtime/git-fleetlog-demo.*" || true)
+[ -z "$stale" ] || { echo "demo: interrupted run left $stale; restore its backup-read.json to $cache and backup-config to $config by hand" >&2; exit 1; }
+state=$(mktemp -d "$runtime/git-fleetlog-demo.XXXXXX")
+had_cache=0 had_config=0
+if [ -e "$cache" ]; then cp -p "$cache" "$state/backup-read.json"; had_cache=1; fi
+if [ -e "$config" ]; then cp -p "$config" "$state/backup-config"; had_config=1; fi
+
+# Wait for the panel's read to start and end.
+settle() {
+  sleep 2
+  while pgrep -f "$PWD/bin/git-fleetlog --json" >/dev/null; do sleep 0.2; done
+}
+
+restored=0
+cleanup() {
+  qs ipc --pid "$pid" call "$id" close >/dev/null 2>&1 || true
+  [ "$restored" = 1 ] && return
+  # The cache first: saving the config then makes the panel read again, and
+  # the real cache is too old to serve that.
+  if [ "$had_cache" = 1 ]; then cp -p "$state/backup-read.json" "$cache"; else rm -f "$cache"; fi
+  if [ "$had_config" = 1 ]; then cat "$state/backup-config" > "$config"; touch -r "$state/backup-config" "$config"
+  else rm -f "$config"; echo "demo: press r in the panel to read the real fleet again" >&2; fi
+  rm -f "$state/backup-read.json" "$state/backup-config" && rmdir "$state"
+  restored=1
+}
+trap cleanup EXIT INT TERM HUP
+
+mkdir -p "$(dirname "$cache")" "$(dirname "$config")"
+python3 - demo/fixtures/read.json "$cache" <<'PY'
+import json, sys, time
+data = json.load(open(sys.argv[1]))
+shift = int(time.time()) + 120 - data["until"]
+data["since"] += shift
+data["until"] += shift
+for m in data["facts"]:
+    m["read_at"] += shift
+    for r in m.get("repos", []):
+        if r["synced"] is not None:
+            r["synced"] += shift
+        for c in r["commits"]:
+            c["time"] += shift
+open(sys.argv[2], "w").write(json.dumps(data) + "\n")
+PY
+# In place, so the panel's watch sees the save.
+printf '[identity]\nemails = personal work\n' > "$config"
+settle
+
+qs ipc --pid "$pid" call "$id" open
+sleep 1
+grim -g "$region" "$output"
+echo "demo: wrote $output"

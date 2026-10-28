@@ -1,0 +1,502 @@
+{
+ "schema": 1,
+ "since": 1792160400,
+ "until": 1792765200,
+ "facts": [
+  {
+   "label": "laptop",
+   "reached": true,
+   "complete": true,
+   "error": null,
+   "hostname": "ada-laptop",
+   "read_at": 1792765200,
+   "home": "/home/ada",
+   "missing": [],
+   "problems": [],
+   "repos": [
+    {
+     "path": "/home/ada/Projects/weather-widget",
+     "root": "2cf0fa50ff3afaaff385c37daddc357c9fe8ff6f",
+     "email": "personal",
+     "synced": null,
+     "remotes": 0,
+     "head": "main",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": null,
+       "track": null,
+       "unpushed": 12
+      }
+     ],
+     "commits": [
+      {
+       "hash": "8d018d37ceec727af740b7dd79898b9e8a6f0b7a",
+       "email": "personal",
+       "time": 1792671600,
+       "subject": "Show tomorrow's frost warning"
+      },
+      {
+       "hash": "b1811e48524481a4e45b294237d2ce3510191006",
+       "email": "personal",
+       "time": 1792664400,
+       "subject": "Cache the forecast for an hour"
+      },
+      {
+       "hash": "69176198f5b657a46615078296bde5e90fbb39ce",
+       "email": "personal",
+       "time": 1792660800,
+       "subject": "Fall back to the last forecast when offline"
+      },
+      {
+       "hash": "196b8160694b71d264641e8c584c101cf3c476e4",
+       "email": "personal",
+       "time": 1792581600,
+       "subject": "Round wind speeds to whole numbers"
+      },
+      {
+       "hash": "b3f812c0386f38d728a563ac425786febe6a3578",
+       "email": "personal",
+       "time": 1792570800,
+       "subject": "Add a compact layout for small bars"
+      },
+      {
+       "hash": "be9e67a52313beb7db9c38984db0c4e05a846fc8",
+       "email": "personal",
+       "time": 1792502400,
+       "subject": "Read the station from the config"
+      },
+      {
+       "hash": "99282ff0700517fe8e1b2bc15f5a24b358592e65",
+       "email": "personal",
+       "time": 1792498800,
+       "subject": "Draw rain as a bar chart"
+      },
+      {
+       "hash": "aa012578bc62260c58dbaed65f79353df401f290",
+       "email": "personal",
+       "time": 1792401600,
+       "subject": "Parse the hourly forecast"
+      },
+      {
+       "hash": "42b90d6f5b7d87aa42e1d3bb9087418317231aec",
+       "email": "personal",
+       "time": 1792394400,
+       "subject": "Retry once on a timeout"
+      },
+      {
+       "hash": "520ec54d87547a6d798a6d533969bf0e2f02ea92",
+       "email": "personal",
+       "time": 1792326000,
+       "subject": "Pick icons by condition code"
+      },
+      {
+       "hash": "29719990ffac557cb0f26ea674418d0449a80bbc",
+       "email": "personal",
+       "time": 1792322400,
+       "subject": "Show the temperature in the bar"
+      },
+      {
+       "hash": "5f34737ffe00f0d50c22a3f548d2197fe33f4e91",
+       "email": "personal",
+       "time": 1792243200,
+       "subject": "Start the weather widget"
+      }
+     ],
+     "made": [
+      "8d018d37ceec727af740b7dd79898b9e8a6f0b7a",
+      "b1811e48524481a4e45b294237d2ce3510191006",
+      "69176198f5b657a46615078296bde5e90fbb39ce",
+      "196b8160694b71d264641e8c584c101cf3c476e4",
+      "b3f812c0386f38d728a563ac425786febe6a3578",
+      "be9e67a52313beb7db9c38984db0c4e05a846fc8",
+      "99282ff0700517fe8e1b2bc15f5a24b358592e65",
+      "aa012578bc62260c58dbaed65f79353df401f290",
+      "42b90d6f5b7d87aa42e1d3bb9087418317231aec",
+      "520ec54d87547a6d798a6d533969bf0e2f02ea92",
+      "29719990ffac557cb0f26ea674418d0449a80bbc",
+      "5f34737ffe00f0d50c22a3f548d2197fe33f4e91"
+     ],
+     "changed": 0,
+     "untracked": 0,
+     "stashes": 0
+    },
+    {
+     "path": "/home/ada/Projects/invoice-tool",
+     "root": "ff5189b9092a5153c341e4d046f2c7675c90deb5",
+     "email": "work",
+     "synced": 1792678800,
+     "remotes": 1,
+     "head": "csv-export",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": "origin/main",
+       "track": null,
+       "unpushed": 0
+      },
+      {
+       "name": "csv-export",
+       "upstream": null,
+       "track": null,
+       "unpushed": 2
+      }
+     ],
+     "commits": [
+      {
+       "hash": "508006467e73570e1d432018eea85aebaa3b2989",
+       "email": "work",
+       "time": 1792743600,
+       "subject": "Export invoices as CSV"
+      },
+      {
+       "hash": "ecabd38857f82f6905a4989ab9081129bf0dcdcd",
+       "email": "work",
+       "time": 1792740000,
+       "subject": "Name the export file after the month"
+      },
+      {
+       "hash": "ffb0c4ad144f26f17085feda5470a1ef7da1059f",
+       "email": "work",
+       "time": 1792657200,
+       "subject": "Escape commas in client names"
+      },
+      {
+       "hash": "55c8efefbeb5cba097dd5209472467257ecfe255",
+       "email": "work",
+       "time": 1792574400,
+       "subject": "Total each currency separately"
+      },
+      {
+       "hash": "efaa9f5fb095163df2b6fb0ad3d0f04dfbebb19c",
+       "email": "work",
+       "time": 1792491600,
+       "subject": "Fix the due date on short months"
+      }
+     ],
+     "made": [
+      "508006467e73570e1d432018eea85aebaa3b2989",
+      "ecabd38857f82f6905a4989ab9081129bf0dcdcd"
+     ],
+     "changed": 0,
+     "untracked": 0,
+     "stashes": 0
+    },
+    {
+     "path": "/home/ada/Projects/recipe-site",
+     "root": "d21531c484c48922ff48b399eb87712e3650cb78",
+     "email": "personal",
+     "synced": 1792678800,
+     "remotes": 1,
+     "head": "main",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": "origin/main",
+       "track": null,
+       "unpushed": 0
+      }
+     ],
+     "commits": [
+      {
+       "hash": "37b0ba1c5210daa81d35bb08a8a63a692d1a14cf",
+       "email": "personal",
+       "time": 1792588800,
+       "subject": "Scale ingredients by servings"
+      },
+      {
+       "hash": "9f0f7be4464afa11ca53f1603ef601a81253b10d",
+       "email": "personal",
+       "time": 1792585200,
+       "subject": "Print recipes without the sidebar"
+      },
+      {
+       "hash": "853754be8d4f999e8cf8fd8251257770faeda35b",
+       "email": "personal",
+       "time": 1792408800,
+       "subject": "Add a search box"
+      }
+     ],
+     "made": [
+      "37b0ba1c5210daa81d35bb08a8a63a692d1a14cf",
+      "9f0f7be4464afa11ca53f1603ef601a81253b10d"
+     ],
+     "changed": 0,
+     "untracked": 0,
+     "stashes": 0
+    },
+    {
+     "path": "/home/ada/dotfiles",
+     "root": "96fd84ac66a05ed7c5b98ef8900ea1c3181decfb",
+     "email": "personal",
+     "synced": 1792678800,
+     "remotes": 1,
+     "head": "main",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": "origin/main",
+       "track": null,
+       "unpushed": 0
+      }
+     ],
+     "commits": [
+      {
+       "hash": "8e266752439652be14713cbe899cfa0e4fa07ea2",
+       "email": "personal",
+       "time": 1792650000,
+       "subject": "Quieter notifications at night"
+      },
+      {
+       "hash": "dbb9c44831c25683fb55f251c0edab3cff76434a",
+       "email": "personal",
+       "time": 1792560000,
+       "subject": "Move editor plugins to lazy loading"
+      },
+      {
+       "hash": "a18ecd9d9acd2300bd00be2865fd1685bdd245fb",
+       "email": "personal",
+       "time": 1792480800,
+       "subject": "Split the shell aliases by tool"
+      },
+      {
+       "hash": "ef25d6957b7e33621c4c766831106befd5d79ec8",
+       "email": "personal",
+       "time": 1792387200,
+       "subject": "Drop the old status bar config"
+      }
+     ],
+     "made": [],
+     "changed": 0,
+     "untracked": 0,
+     "stashes": 0
+    }
+   ],
+   "local": true
+  },
+  {
+   "label": "desktop",
+   "reached": true,
+   "complete": true,
+   "error": null,
+   "hostname": "ada-desktop",
+   "read_at": 1792765200,
+   "home": "/home/ada",
+   "missing": [],
+   "problems": [],
+   "repos": [
+    {
+     "path": "/home/ada/dotfiles",
+     "root": "96fd84ac66a05ed7c5b98ef8900ea1c3181decfb",
+     "email": "personal",
+     "synced": 1792678800,
+     "remotes": 1,
+     "head": "main",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": "origin/main",
+       "track": "ahead 2",
+       "unpushed": 2
+      }
+     ],
+     "commits": [
+      {
+       "hash": "0b498e97e1b402e81ad0a247f6b418c41d54d281",
+       "email": "personal",
+       "time": 1792754400,
+       "subject": "Bind the screenshot tool to Print"
+      },
+      {
+       "hash": "1d48f409a0b398de37f36486e7d29ae67c201a50",
+       "email": "personal",
+       "time": 1792747200,
+       "subject": "Use the new terminal font everywhere"
+      },
+      {
+       "hash": "8e266752439652be14713cbe899cfa0e4fa07ea2",
+       "email": "personal",
+       "time": 1792650000,
+       "subject": "Quieter notifications at night"
+      },
+      {
+       "hash": "dbb9c44831c25683fb55f251c0edab3cff76434a",
+       "email": "personal",
+       "time": 1792560000,
+       "subject": "Move editor plugins to lazy loading"
+      },
+      {
+       "hash": "a18ecd9d9acd2300bd00be2865fd1685bdd245fb",
+       "email": "personal",
+       "time": 1792480800,
+       "subject": "Split the shell aliases by tool"
+      },
+      {
+       "hash": "ef25d6957b7e33621c4c766831106befd5d79ec8",
+       "email": "personal",
+       "time": 1792387200,
+       "subject": "Drop the old status bar config"
+      }
+     ],
+     "made": [
+      "0b498e97e1b402e81ad0a247f6b418c41d54d281",
+      "1d48f409a0b398de37f36486e7d29ae67c201a50",
+      "8e266752439652be14713cbe899cfa0e4fa07ea2",
+      "dbb9c44831c25683fb55f251c0edab3cff76434a",
+      "a18ecd9d9acd2300bd00be2865fd1685bdd245fb",
+      "ef25d6957b7e33621c4c766831106befd5d79ec8"
+     ],
+     "changed": 7,
+     "untracked": 2,
+     "stashes": 0
+    },
+    {
+     "path": "/home/ada/Projects/invoice-tool",
+     "root": "ff5189b9092a5153c341e4d046f2c7675c90deb5",
+     "email": "work",
+     "synced": 1792678800,
+     "remotes": 1,
+     "head": "main",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": "origin/main",
+       "track": null,
+       "unpushed": 0
+      }
+     ],
+     "commits": [
+      {
+       "hash": "ffb0c4ad144f26f17085feda5470a1ef7da1059f",
+       "email": "work",
+       "time": 1792657200,
+       "subject": "Escape commas in client names"
+      },
+      {
+       "hash": "55c8efefbeb5cba097dd5209472467257ecfe255",
+       "email": "work",
+       "time": 1792574400,
+       "subject": "Total each currency separately"
+      },
+      {
+       "hash": "efaa9f5fb095163df2b6fb0ad3d0f04dfbebb19c",
+       "email": "work",
+       "time": 1792491600,
+       "subject": "Fix the due date on short months"
+      }
+     ],
+     "made": [
+      "ffb0c4ad144f26f17085feda5470a1ef7da1059f",
+      "55c8efefbeb5cba097dd5209472467257ecfe255",
+      "efaa9f5fb095163df2b6fb0ad3d0f04dfbebb19c"
+     ],
+     "changed": 0,
+     "untracked": 0,
+     "stashes": 1
+    },
+    {
+     "path": "/home/ada/Projects/recipe-site",
+     "root": "d21531c484c48922ff48b399eb87712e3650cb78",
+     "email": "personal",
+     "synced": 1792678800,
+     "remotes": 1,
+     "head": "main",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": "origin/main",
+       "track": null,
+       "unpushed": 0
+      }
+     ],
+     "commits": [
+      {
+       "hash": "37b0ba1c5210daa81d35bb08a8a63a692d1a14cf",
+       "email": "personal",
+       "time": 1792588800,
+       "subject": "Scale ingredients by servings"
+      },
+      {
+       "hash": "9f0f7be4464afa11ca53f1603ef601a81253b10d",
+       "email": "personal",
+       "time": 1792585200,
+       "subject": "Print recipes without the sidebar"
+      },
+      {
+       "hash": "853754be8d4f999e8cf8fd8251257770faeda35b",
+       "email": "personal",
+       "time": 1792408800,
+       "subject": "Add a search box"
+      }
+     ],
+     "made": [
+      "853754be8d4f999e8cf8fd8251257770faeda35b"
+     ],
+     "changed": 0,
+     "untracked": 0,
+     "stashes": 0
+    }
+   ],
+   "local": false
+  },
+  {
+   "label": "homeserver",
+   "reached": true,
+   "complete": true,
+   "error": null,
+   "hostname": "ada-homeserver",
+   "read_at": 1792765200,
+   "home": "/home/ada",
+   "missing": [],
+   "problems": [],
+   "repos": [
+    {
+     "path": "/home/ada/srv/homelab",
+     "root": "9d964717286ee26369c3b230dc4555dfa089225b",
+     "email": "personal",
+     "synced": 1792678800,
+     "remotes": 1,
+     "head": "main",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": "origin/main",
+       "track": null,
+       "unpushed": 0
+      }
+     ],
+     "commits": [
+      {
+       "hash": "0d32dce9bfd5cb1a027b6791c3a0eb771283451a",
+       "email": "personal",
+       "time": 1792318800,
+       "subject": "Back up the photo library nightly"
+      },
+      {
+       "hash": "f3d4a00bacdf316040e6dc998b7d58f175781e40",
+       "email": "personal",
+       "time": 1792315200,
+       "subject": "Restart the media server after updates"
+      }
+     ],
+     "made": [
+      "0d32dce9bfd5cb1a027b6791c3a0eb771283451a",
+      "f3d4a00bacdf316040e6dc998b7d58f175781e40"
+     ],
+     "changed": 0,
+     "untracked": 0,
+     "stashes": 0
+    }
+   ],
+   "local": false
+  },
+  {
+   "label": "pi",
+   "reached": false,
+   "complete": false,
+   "error": "ssh: connect to host pi port 22: No route to host",
+   "read_at": 1792765200,
+   "local": false
+  }
+ ]
+}
