@@ -18,13 +18,11 @@ import json
 import os
 import shutil
 import subprocess
-from pathlib import Path
 
+from fleetlog import COMMAND, ROOT
 from fleetlog.config import Config, config_path, hosts_path
 from fleetlog.recap import clean
 
-ROOT = Path(__file__).resolve().parent.parent
-COMMAND = ROOT / "bin" / "fleetlog"
 SETUP = ROOT / "docs" / "AGENT_SETUP.md"
 REPO = ROOT / "docs" / "AGENT_REPO.md"
 PICK = ["omarchy-menu", "summon", "setup.default.agent"]

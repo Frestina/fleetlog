@@ -1,3 +1,4 @@
+import argparse
 import unittest
 from contextlib import redirect_stdout
 from io import StringIO
@@ -55,7 +56,7 @@ class SinceTest(unittest.TestCase):
     def test_since(self):
         self.assertGreater(cli.since("2d"), cli.since("1w"))
         self.assertEqual(cli.since("2026-10-01"), cli.since("2026-10-01"))
-        with self.assertRaises(Exception):
+        with self.assertRaises(argparse.ArgumentTypeError):
             cli.since("last friday")
 
 

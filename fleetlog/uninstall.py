@@ -24,10 +24,9 @@ import sys
 from collections.abc import Callable
 from pathlib import Path
 
-from fleetlog import cache, config, timers
+from fleetlog import COMMAND, cache, config, timers
 
 PLUGIN_ID = "io.github.frestina.fleetlog"
-COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
 
 Plan = list[tuple[str, Callable[[], object]]]
 

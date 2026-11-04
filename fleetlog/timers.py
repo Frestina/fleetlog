@@ -23,10 +23,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from fleetlog import config
+from fleetlog import COMMAND, config
 
 MARK = "# Written by fleetlog timers install; fleetlog timers remove removes it."
-COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
 TIMEOUT = 30
 _PLAIN = frozenset(string.ascii_letters + string.digits + "/._-+,:@=~")
 
