@@ -8,6 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from tests.fleet import PYTHON
+
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / "demo" / "fixtures" / "read.json"
 
@@ -23,7 +25,8 @@ class DemoTest(unittest.TestCase):
             (home / ".config" / "fleet" / "log").mkdir(parents=True)
             (home / ".config" / "fleet" / "log" / "config.toml").write_text(
                 '[identity]\nemails = ["personal", "work"]\n')
-            env = {"PATH": os.environ["PATH"], "HOME": tmp, "GIT_CONFIG_GLOBAL": os.devnull,
+            env = {"PATH": os.pathsep.join([PYTHON, os.environ["PATH"]]), "HOME": tmp,
+                   "GIT_CONFIG_GLOBAL": os.devnull,
                    "XDG_CONFIG_HOME": str(home / ".config"),
                    "XDG_CACHE_HOME": str(home / ".cache")}
             done = subprocess.run([str(ROOT / "bin" / "fleetlog"), "--json", "--reuse-from",

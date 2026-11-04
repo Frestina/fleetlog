@@ -18,6 +18,7 @@ fixture global config with two identities, and never the real one.
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -26,6 +27,10 @@ from unittest import mock
 from fleetlog import config
 
 BIN = Path(__file__).resolve().parent / "bin"
+# bin/fleetlog starts with `env python3`: the Python running the tests, not
+# whatever comes first on the PATH, such as a version manager's shim that
+# will not run under a throwaway HOME.
+PYTHON = os.path.dirname(sys.executable)
 ME = "me@example.org"
 WORK = "work@example.com"
 OTHER = "someone@example.net"
@@ -53,7 +58,7 @@ class FakeFleet:
         (self.root / "gitconfig").write_text(GITCONFIG)
         local = self.home(names[0])
         env = {
-            "PATH": f"{BIN}{os.pathsep}{os.environ.get('PATH', '')}",
+            "PATH": os.pathsep.join([str(BIN), PYTHON, os.environ.get("PATH", "")]),
             "FL_FAKE": str(self.root),
             "HOME": str(local),
             "GIT_CONFIG_GLOBAL": str(self.root / "gitconfig"),
