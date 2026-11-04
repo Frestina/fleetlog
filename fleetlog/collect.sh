@@ -9,8 +9,10 @@
 #
 #   M  hostname, time now, HOME          once, first
 #   N  folder                            a folder that is not on this machine
-#   R  path, root, user.email, synced, remotes
-#                                        a repo; the records below belong to it
+#   R  path, root, user.email, synced, remotes, common dir
+#                                        a repo; the records below belong to it.
+#                                        Worktrees share a common dir, and with
+#                                        it their branches and stashes
 #   H  branch                            what HEAD is on, empty when detached
 #   B  branch, upstream, track, unpushed one per local branch
 #   C  hash, author email, time, subject a commit in the window
@@ -59,7 +61,7 @@ repo() {
   root=$("${g[@]}" rev-list --max-parents=0 HEAD 2>/dev/null | sort | head -n 1)
   email=$("${g[@]}" config user.email 2>/dev/null)
   remotes=$("${g[@]}" remote 2>/dev/null | wc -l)
-  rec R "$path" "$root" "$email" "$(synced "$common")" "$remotes"
+  rec R "$path" "$root" "$email" "$(synced "$common")" "$remotes" "$common"
   rec H "$("${g[@]}" symbolic-ref -q --short HEAD 2>/dev/null)"
 
   while IFS=$US read -r branch up track; do

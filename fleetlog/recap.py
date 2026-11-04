@@ -116,28 +116,39 @@ def _project(key: str, members: list[tuple[str, dict]], identities: dict[str, st
 
 
 def _left(label: str, repos: list[dict]) -> list[dict]:
-    """What is left off on one machine, across its clones (worktrees share
-    branches, so each branch counts once)."""
+    """What is left off on one machine, across its clones. Worktrees of one
+    clone share its branches and stashes, so those count once per clone, by
+    the git common dir; facts read before it was collected count them once
+    per machine."""
     out = []
     several = len(repos) > 1
-    if all(r["remotes"] == 0 for r in repos):
-        out.append({"machine": label, "kind": "no-remote",
-                    "text": f"{label}: no remote, so none of it is pushed anywhere"})
-    branches: dict[str, dict] = {}
+    groups: dict[str | None, list[dict]] = {}
     for r in repos:
-        if r["remotes"] == 0:
-            continue
-        for b in r["branches"]:
-            branches.setdefault(b["name"], b)
-    for name, b in branches.items():
-        n = b["unpushed"] or 0
-        if n and b["upstream"] is None:
-            out.append({"machine": label, "kind": "never-pushed", "branch": name, "count": n,
-                        "text": f"{label}: branch {clean(name)} was never pushed "
-                                f"({_n(n, 'commit')})"})
-        elif n:
-            out.append({"machine": label, "kind": "unpushed", "branch": name, "count": n,
-                        "text": f"{label}: {_n(n, 'commit')} on {clean(name)} not pushed"})
+        groups.setdefault(r.get("common"), []).append(r)
+    # With several clones, each line says which one, and its path goes to the
+    # agent button.
+    clones = [(clone, {"machine": label, "path": clone[0]["path"]},
+               f"{label} ({clean(clone[0]['path'])})") if len(groups) > 1
+              else (clone, {"machine": label}, label) for clone in groups.values()]
+    for clone, at, who in clones:
+        if all(r["remotes"] == 0 for r in clone):
+            out.append({**at, "kind": "no-remote",
+                        "text": f"{who}: no remote, so none of it is pushed anywhere"})
+        branches: dict[str, dict] = {}
+        for r in clone:
+            if r["remotes"] == 0:
+                continue
+            for b in r["branches"]:
+                branches.setdefault(b["name"], b)
+        for name, b in branches.items():
+            n = b["unpushed"] or 0
+            if n and b["upstream"] is None:
+                out.append({**at, "kind": "never-pushed", "branch": name, "count": n,
+                            "text": f"{who}: branch {clean(name)} was never pushed "
+                                    f"({_n(n, 'commit')})"})
+            elif n:
+                out.append({**at, "kind": "unpushed", "branch": name, "count": n,
+                            "text": f"{who}: {_n(n, 'commit')} on {clean(name)} not pushed"})
     for r in repos:
         where = f"{label} ({clean(r['path'])})" if several else label
         head = next((b for b in r["branches"] if b["name"] == r["head"]), None)
@@ -166,10 +177,10 @@ def _left(label: str, repos: list[dict]) -> list[dict]:
         elif r["changed"] is None:
             out.append({"machine": label, "kind": "unknown", "path": r["path"],
                         "text": f"{where}: could not tell whether anything is uncommitted"})
-    stashes = max((r["stashes"] for r in repos), default=0)
-    if stashes:
-        out.append({"machine": label, "kind": "stash", "count": stashes,
-                    "text": f"{label}: {_n(stashes, 'stash', 'stashes')}"})
+    for clone, at, who in clones:
+        if stashes := max(r["stashes"] for r in clone):
+            out.append({**at, "kind": "stash", "count": stashes,
+                        "text": f"{who}: {_n(stashes, 'stash', 'stashes')}"})
     return out
 
 

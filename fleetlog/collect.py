@@ -126,7 +126,8 @@ def parse(label: str, out: bytes) -> dict:
             repo = {"path": f[0], "root": f[1] or None, "email": f[2] or None,
                     "synced": _int(f[3]), "remotes": _int(f[4]) or 0, "head": None,
                     "branches": [], "commits": [], "made": [], "changed": None,
-                    "untracked": None, "stashes": 0}
+                    "untracked": None, "stashes": 0,
+                    "common": US.join(f[5:]) or None}
             facts["repos"].append(repo)
         elif repo is None:
             continue

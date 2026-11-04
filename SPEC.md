@@ -236,7 +236,9 @@ The panel can hand what it shows to the user's default coding agent
   `~/dotfiles` by default, 4 levels deep. The config can add folders for every
   machine or for one machine, and exclude repos by folder or projects by name.
 - **The same repo on several machines** is one project, matched by its first
-  commit, so a renamed folder or remote still matches.
+  commit, so a renamed folder or remote still matches. Two clones of it on
+  one machine are left off each on their own, named by path. Worktrees of
+  one clone share its branches and stashes, so those count once.
 - **Which commits are the author's**: author email matches one of the
   addresses in the git-whoami identity config (`[identity "<name>"] email =`)
   or `user.email`. The identity's name is the account shown in the recap. A

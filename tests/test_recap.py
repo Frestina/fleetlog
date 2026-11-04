@@ -58,6 +58,33 @@ class RecapTest(FleetTest):
         self.assertEqual(kinds, {("crate", "behind"), ("crate", "uncommitted")})
         self.assertEqual(by["tool"].clean_on, ["bench"])
 
+    def test_two_clones_on_one_machine_each_keep_their_branches(self):
+        repo = self.fleet.repo("anvil", "Projects/tool")
+        self.fleet.commit(repo, "First")
+        bare = self.fleet.remote(repo)
+        copy = self.fleet.clone(bare, "anvil", "Projects/tool-copy")
+        for i in range(3):
+            self.fleet.commit(copy, f"Only in the copy {i}")
+        _, [p] = self.build()
+        copy_path = str(self.fleet.home("anvil") / "Projects/tool-copy")
+        self.assertEqual([(e["kind"], e.get("count"), e.get("path")) for e in p.left],
+                         [("unpushed", 3, copy_path)])
+        self.assertEqual(p.left[0]["text"], f"anvil ({copy_path}): 3 commits on main not pushed")
+        self.assertEqual(p.clean_on, [])
+
+    def test_worktrees_share_their_branches(self):
+        repo = self.fleet.repo("anvil", "Projects/tool")
+        self.fleet.commit(repo, "First")
+        self.fleet.remote(repo)
+        self.fleet.commit(repo, "Not pushed")
+        self.fleet.git(repo, "worktree", "add", "-q", "-b", "side",
+                       str(self.fleet.home("anvil") / "Projects/tool-side"))
+        _, [p] = self.build()
+        self.assertEqual([(e["kind"], e.get("branch"), e["text"]) for e in p.left],
+                         [("unpushed", "main", "anvil: 1 commit on main not pushed"),
+                          ("never-pushed", "side", "anvil: branch side was never pushed "
+                                                   "(1 commit)")])
+
     def test_exclude(self):
         self.fleet.repo("anvil", "Projects/keep")
         self.fleet.repo("anvil", "Projects/scratch/thing")
