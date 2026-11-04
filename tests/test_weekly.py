@@ -45,6 +45,21 @@ class WeeklyTest(FleetTest):
         quiet(weekly.retry, self.fleet.load())
         self.assertEqual(self.stored()["facts"][2]["tries"], 2)
 
+    def test_a_failed_retry_keeps_what_an_earlier_try_read(self):
+        self.fleet.repo("crate", "Projects/tool")
+        self.fleet.repo("crate", "Projects/broken").joinpath(".git", "HEAD").write_text("junk\n")
+        quiet(weekly.weekly, self.fleet.load())
+        before = self.stored()["facts"][2]
+        self.assertTrue(before["reached"])
+        self.assertTrue(before["problems"])
+        self.fleet.unreachable("crate")
+        for _ in range(3):
+            quiet(weekly.retry, self.fleet.load())
+        after = self.stored()["facts"][2]
+        self.assertEqual(after["tries"], 4)
+        self.assertEqual({k: v for k, v in after.items() if k != "tries"},
+                         {k: v for k, v in before.items() if k != "tries"})
+
     def test_retry_with_nothing_missed_reads_nothing(self):
         quiet(weekly.weekly, self.fleet.load())
         self.fleet.clear_calls()

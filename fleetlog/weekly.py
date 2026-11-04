@@ -103,8 +103,10 @@ def retry(cfg: Config) -> int:
             f["tries"] = old.get("tries", 1) + 1
             f["first_tried"] = old.get("first_tried", old.get("read_at"))
             if not f["reached"] and old.get("reached"):
-                # Keep what an earlier try did read, and say this one failed.
-                old.update(tries=f["tries"], error=f"{old.get('error')}; then {f['error']}")
+                # Keep what an earlier try did read, with its own error. This
+                # try's goes to the log, not into the error, which would grow
+                # by one every hour until Sunday.
+                old["tries"] = f["tries"]
                 continue
             data["facts"][i] = f
         data["updated_at"] = now

@@ -352,7 +352,8 @@ it. The weekly run must not be noticed there:
   read does not slow down either.
 - Machines not reached are tried again hourly at :45 until Sunday night, since
   a viewer may be asleep on Friday afternoon, with the same window. The stored
-  recap is updated each time one answers.
+  recap is updated each time one answers. A try that does not reach a
+  machine an earlier one did keeps what that one read, with its error.
 - The minutes (:15, :45, :50, and :20 for the bar icon's read on viewers)
   keep clear of Fleet doctor's runs, on the hour and every 5 minutes from
   :02, so the two never ssh into a machine at once.
