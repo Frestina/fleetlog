@@ -66,6 +66,9 @@ def locked():
 
 
 def weekly(cfg: Config) -> int:
+    if cfg.when is None:
+        print("the weekly recap is off in the config; nothing was read")
+        return 0
     with locked():
         until = int(time.time())
         since = until - WEEK
@@ -79,6 +82,9 @@ def weekly(cfg: Config) -> int:
 
 
 def retry(cfg: Config) -> int:
+    if cfg.when is None:
+        print("the weekly recap is off in the config; nothing was read")
+        return 0
     with locked():
         try:
             data = load_local()

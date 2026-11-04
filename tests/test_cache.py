@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 
-from fleetlog import cache, cli
+from fleetlog import cache, cli, timers
 from tests.fleet import FleetTest
 
 COMMAND = Path(__file__).resolve().parent.parent / "bin" / "fleetlog"
@@ -62,6 +62,22 @@ class CacheTest(FleetTest):
         self.assertEqual([p.returncode for p in procs], [0, 0, 0])
         self.assertEqual(self.reads(), 1)
         self.assertEqual(len({json.loads(o)["until"] for o in outs}), 1)
+
+    def test_notices_are_this_machines_now_even_from_the_cache(self):
+        start = int(time.time())
+        self.assertEqual(self.run_cli("--reuse-from", str(start))[1]["notices"], [])
+        with contextlib.redirect_stdout(io.StringIO()):
+            timers.install("main", self.fleet.load())
+        self.fleet.config('[recap]\nwhen = "off"\n')
+        code, data = self.run_cli("--reuse-from", str(start))
+        self.assertEqual(self.reads(), 1)
+        self.assertEqual(data["notices"], [
+            'the weekly recap is off ([recap] when = "off"), but its timers are still here: '
+            "`fleetlog timers remove` removes them"])
+        err = io.StringIO()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+            cli.main(["--reuse-from", str(start)])
+        self.assertIn('note: the weekly recap is off ([recap] when = "off")', err.getvalue())
 
     def test_it_reads_only_the_last_7_days(self):
         for argv in (["--reuse-from", "0", "--since", "2w"], ["--reuse-from", "0", "status"]):

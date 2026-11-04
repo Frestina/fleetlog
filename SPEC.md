@@ -23,8 +23,9 @@ Each project in the recap ends with where it was left: commits not pushed,
 branches never pushed, uncommitted changes and stashes, on each machine. That
 is the part a GitHub activity page cannot show.
 
-Every Friday the recap is built on the main machine and shown as a
-notification on the machine the author is using.
+Every Friday (or another day and time, or never, as the config says) the
+recap is built on the main machine and shown as a notification on the
+machines the author uses.
 
 It is a command first: everything it does works from a terminal, on any
 Linux machine with Python. On Omarchy it is also a shell plugin, installed
@@ -68,7 +69,8 @@ Fleetwatch, and reads the list of machines every
   the next caller. The bar icon's hourly read, shared by every monitor.
 - `fleetlog weekly [--retry]` and `fleetlog notify`: what the timers
   run. `fleetlog timers install main|viewer`, `timers remove` and
-  `timers status` manage the timers.
+  `timers status` manage the timers; `status` also says when they are not
+  what `[recap]` in the config says, and what to run.
 
 Exit codes: 0 when every machine was read, 1 when one was not reached or not
 fully read, 2 for an error. (`fleetlog --help` and `-h` print the help;
@@ -264,6 +266,11 @@ so it changes nothing until one is turned on.
 [main]
 machine = "homeserver"            # where the weekly recap is built
 
+[recap]
+when = "Fri 15:15"                # when it is built, or "off"
+notify = "all"                    # or ["laptop"]: the machines that show it
+stays = true                      # the notification stays until it is clicked
+
 [folders]
 all = ["~/Projects", "~/dotfiles"]
 homeserver = ["~/srv"]            # searched there as well as the folders for all
@@ -283,6 +290,26 @@ emails = ["old-address@example.org"]
 
 A value of the wrong kind (text where a list goes, or the other way round)
 is an error that names the setting, as is a file that is not TOML.
+
+`[recap]`, with the defaults above, which are how it ran before the setting:
+
+- `when` is a day (`Mon`, or `monday`) and a time on a 24-hour clock, or
+  `"off"` for no weekly recap at all; the panel and every command work the
+  same without it. The recap covers the 7 days before. A minute on which
+  Fleet doctor reads the machines (on the hour, and every 5 minutes from
+  :02) is an error that names the nearest free times.
+- `notify` is `"all"`, every machine with the notification timer, or a list
+  of labels. A label that is not a machine is an error; one the config skips
+  is not, since a machine can show the recap without being read.
+- `stays = false` makes the notification normal, so it goes away by itself.
+- The time is written into the timers when they are installed, so a change
+  takes `fleetlog timers install` again on each machine that has them.
+  Until then, on that machine, `fleetlog timers status` and every recap the
+  command shows (as a note, and in the panel as a gap on that machine) say
+  what to run. The same goes for timers left after `"off"`, a notification
+  timer on a machine not in `notify`, and a machine named in `notify`
+  without one. A machine can only tell about its own timers: nothing is
+  installed or checked on another machine.
 
 ## Install and remove
 
@@ -342,7 +369,8 @@ is an error that names the setting, as is a file that is not TOML.
 The main machine runs other scripts and bots, and the author never sits at
 it. The weekly run must not be noticed there:
 
-- A systemd user timer, Fridays at 15:15, persistent, so a run missed while
+- A systemd user timer at `[recap] when`, Fridays at 15:15 by default,
+  persistent, so a run missed while
   the machine was off happens when it is back. It works with nobody logged in
   only with lingering; `timers install main` says when it is off and prints
   the command, and never turns it on itself.
@@ -353,31 +381,37 @@ it. The weekly run must not be noticed there:
   its own state folder, `~/.local/state/fleet/log/`.
 - Far-side commands run under `nice -n 19` and idle IO too, so a viewer being
   read does not slow down either.
-- Machines not reached are tried again hourly at :45 until Sunday night, since
-  a viewer may be asleep on Friday afternoon, with the same window. The stored
+- Machines not reached are tried again hourly at :45 from the next hour to
+  the end of the day after next (until Sunday night by default), since a
+  viewer may be asleep when the recap is built, with the same window. The stored
   recap is updated each time one answers. A try that does not reach a
   machine an earlier one did keeps what that one read, with its error.
-- The minutes (:15, :45, :50, and :20 for the bar icon's read on viewers)
-  keep clear of Fleet doctor's runs, on the hour and every 5 minutes from
-  :02, so the two never ssh into a machine at once.
+- The minutes (the recap's own, :15 by default, which the config checks;
+  :45, :50, and :20 for the bar icon's read on viewers) keep clear of Fleet
+  doctor's runs, on the hour and every 5 minutes from :02, so the two never
+  ssh into a machine at once.
 - Only the latest recap is kept, as `latest.json`: the machines' facts, so a
   viewer renders it with its own identities and config.
 
 ### The notification on viewers
 
-- A systemd user timer on each viewer, hourly at :50 from Friday to Sunday.
+- A systemd user timer on each viewer, hourly at :50 on the day of the recap
+  and the two after (Friday to Sunday by default). On a machine not in
+  `[recap] notify`, or with the recap off, it does nothing and asks nothing.
 - It fetches the latest recap from the main machine with one ssh call (`cat`,
   nothing else). The first time a recap from the last 3 days is there and has
   not been shown on this viewer, it raises one notification: the commit and
   project count and the busiest projects. Clicking it opens the full recap in
   a terminal (`less`), from a copy written on the viewer.
-- It is critical, so it stays on screen until it is clicked or dismissed: the
+- By default it is critical, so it stays on screen until it is clicked or
+  dismissed (with `stays = false` it is normal and goes away by itself): the
   author is often away from the machine when it comes. The service waits for
   the click with no time limit. Do Not Disturb still holds it back.
 - A recap counts as shown once the notification is up, not when it is
   clicked. When notify-send fails (no notification daemon, a locked session),
   the next hour tries again.
-- Once the recap due last Friday at 15:15 has been shown on a viewer, it asks
+- Once the recap last due (last Friday at 15:15, by default) has been shown on
+  a viewer, it asks
   the main machine nothing until the next one is due. A timer whose time
   passed while the machine slept runs on resume, on any day, and that run
   has nothing to show.

@@ -307,12 +307,15 @@ def _gaps(facts: Sequence[dict]) -> list[str]:
 # --- JSON -----------------------------------------------------------------
 
 def as_json(facts: Sequence[dict], projects: Sequence[Project], since: int, until: int,
-            status: bool = False) -> str:
+            status: bool = False, notices: Sequence[str] = ()) -> str:
+    """notices: about this machine's setup, such as timers that are not what
+    the config says, each saying what to run."""
     data = {
         "schema": SCHEMA,
         "kind": "status" if status else "recap",
         "since": None if status else _stamp(since),
         "until": _stamp(until),
+        "notices": list(notices),
         "machines": [{
             "label": m["label"], "local": bool(m.get("local")),
             "reached": bool(m.get("reached")), "complete": bool(m.get("complete")),

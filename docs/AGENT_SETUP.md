@@ -153,5 +153,10 @@ it works.
   `[main]`, with `fleetlog timers install main` there; the machines the
   user sits at get `fleetlog timers install viewer`. Install only on a
   yes, and only on this machine; tell the user the command for the others.
+  `[recap]` in the config sets when it is built (`when = "Fri 15:15"`, or
+  `"off"`), which machines show it (`notify = "all"` or a list of labels),
+  and whether the notification stays until clicked (`stays = true`). After
+  a change to `when`, `fleetlog timers install` has to run again on each
+  machine with the timers; `fleetlog timers status` says where it has not.
 - **Removing it**: Uninstall in the panel, or `fleetlog uninstall`, asks
   first and removes only what fleetlog added on this machine.

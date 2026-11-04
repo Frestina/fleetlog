@@ -21,6 +21,11 @@ The config, ~/.config/fleet/log/config.toml, is optional TOML:
     [main]
     machine = "homeserver"
 
+    [recap]
+    when = "Fri 15:15"
+    notify = ["laptop"]
+    stays = true
+
     [folders]
     all = ["~/Projects", "~/dotfiles"]
     homeserver = ["~/srv"]
@@ -49,6 +54,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 FOLDERS = ("~/Projects", "~/dotfiles")
+DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+DAY_NAMES = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+WHEN = (4, 15, 15)  # the weekly recap's default: Friday 15:15, as weekday, hour, minute
+# Fleet doctor's runs, on the hour and every 5 minutes from :02, ssh into the
+# machines too: the weekly run keeps off them.
+DOCTOR = frozenset({0, *range(2, 60, 5)})
 
 TEMPLATE = """\
 # Settings for fleetlog. Every one is optional: remove the # in front of
@@ -71,6 +82,19 @@ TEMPLATE = """\
 [main]
 # The machine that builds the weekly recap and keeps the latest one.
 # machine = "homeserver"
+
+[recap]
+# When the weekly recap of the 7 days before is built, a day and a time, or
+# "off" for none. Not on the hour or at :02, :07, :12 and so on, when Fleet
+# doctor reads the machines. After a change, run `fleetlog timers install`
+# again on the machines that have its timers.
+# when = "Fri 15:15"
+# The machines that show it as a notification, by label, or "all": every
+# machine where `fleetlog timers install viewer` was run.
+# notify = "all"
+# true: it stays on screen until it is clicked or dismissed. false: it goes
+# away by itself, like other notifications.
+# stays = true
 
 [machines]
 # Machines are listed in ~/.config/fleet/hosts, which every Fleet tool reads
@@ -125,6 +149,14 @@ class Config:
     exclude: tuple[str, ...] = ()
     exclude_projects: tuple[str, ...] = ()
     identities: dict[str, str] = field(default_factory=dict)  # email -> account
+    when: tuple[int, int, int] | None = WHEN  # None: no weekly recap
+    notify: tuple[str, ...] | None = None  # None: every machine with the timer
+    stays: bool = True
+    here: str = ""  # this machine's label, even when skip leaves it out of machines
+
+    def notifies(self, label: str) -> bool:
+        """Whether that machine shows the weekly recap."""
+        return self.when is not None and (self.notify is None or label in self.notify)
 
     def folders_for(self, label: str) -> tuple[str, ...]:
         """The folders searched on that machine: all, then its own."""
@@ -196,6 +228,8 @@ def load() -> Config:
         seen.add(m.label)
     if not any(m.local for m in machines):
         machines.insert(0, Machine(_hostname(), "local", local=True))
+    labels = {m.label for m in machines}
+    here = next(m.label for m in machines if m.local)
     machines = [m for m in machines if m.label not in skip]
     if not machines:
         raise ConfigError(f"{path}: [machines] skip leaves no machine to read")
@@ -207,6 +241,7 @@ def load() -> Config:
         raise ConfigError(f'{path}: [main] machine must be a label in quotes, like '
                           f'machine = "homeserver"')
     exclude = _section(data, "exclude")
+    recap = _section(data, "recap")
     return Config(
         machines=tuple(machines),
         main=main.strip() if main else None,
@@ -214,7 +249,56 @@ def load() -> Config:
         exclude=_strings(exclude, "exclude", "repos"),
         exclude_projects=_strings(exclude, "exclude", "projects"),
         identities=identities(list(_strings(_section(data, "identity"), "identity", "emails"))),
+        when=_when(recap.get("when", "Fri 15:15")),
+        notify=_notify(recap.get("notify", "all"), labels),
+        stays=_stays(recap.get("stays", True)),
+        here=here,
     )
+
+
+def _when(value: object) -> tuple[int, int, int] | None:
+    usage = f'{config_path()}: [recap] when must be a day and a time, like when = "Fri 15:15"'
+    if value == "off":
+        return None
+    words = value.split() if isinstance(value, str) else []
+    if len(words) != 2:
+        raise ConfigError(f'{usage}, or "off"')
+    day = next((i for i, d in enumerate(DAYS) if words[0].lower() in
+                (d.lower(), DAY_NAMES[i])), None)
+    hour, _, minute = words[1].partition(":")
+    if (day is None or not hour.isdigit() or not minute.isdigit() or len(minute) != 2
+            or int(hour) > 23 or int(minute) > 59):
+        raise ConfigError(f'{usage}, on a 24-hour clock, or "off"')
+    hour, minute = int(hour), int(minute)
+    if minute in DOCTOR:
+        at = hour * 60 + minute
+        before = next((at - k) % 1440 for k in range(1, 60) if (at - k) % 60 not in DOCTOR)
+        after = next((at + k) % 1440 for k in range(1, 60) if (at + k) % 60 not in DOCTOR)
+        raise ConfigError(f'{config_path()}: [recap] when = "{value}" is when Fleet doctor '
+                          f"reads the machines (on the hour and every 5 minutes from :02); "
+                          f"take {before // 60:02}:{before % 60:02} or "
+                          f"{after // 60:02}:{after % 60:02}")
+    return day, hour, minute
+
+
+def _notify(value: object, labels: set[str]) -> tuple[str, ...] | None:
+    if value == "all":
+        return None
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise ConfigError(f'{config_path()}: [recap] notify must be "all" or a list of '
+                          f'machines in brackets, like notify = ["laptop"]')
+    if unknown := [v for v in value if v not in labels]:
+        raise ConfigError(f"{config_path()}: [recap] notify names {', '.join(unknown)}, "
+                          f"which {'is' if len(unknown) == 1 else 'are'} not one of the "
+                          f"machines ({', '.join(sorted(labels))})")
+    return tuple(value)
+
+
+def _stays(value: object) -> bool:
+    if not isinstance(value, bool):
+        raise ConfigError(f"{config_path()}: [recap] stays must be true or false, "
+                          f"without quotes")
+    return value
 
 
 def ensure() -> Path:

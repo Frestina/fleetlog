@@ -33,7 +33,7 @@ class UninstallTest(FleetTest):
         self.link.symlink_to(uninstall.COMMAND)
         self.git_link.symlink_to(uninstall.COMMAND)
         with contextlib.redirect_stdout(io.StringIO()):
-            timers.install("viewer")
+            timers.install("viewer", self.fleet.load())
         self.fleet.clear_calls()
 
     def run_it(self, answer: str | None) -> tuple[int, str, list[list[str]]]:

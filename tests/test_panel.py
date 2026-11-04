@@ -14,7 +14,7 @@ import subprocess
 import unittest
 from pathlib import Path
 
-from fleetlog import cli
+from fleetlog import cli, timers
 from tests.fleet import FleetTest
 
 NODE = shutil.which("node")
@@ -112,6 +112,14 @@ class PanelTest(FleetTest):
         self.fleet.config('[folders]\nbench = ["~/srv"]\n')
         self.assertEqual(self.view()["gaps"],
                          [{"machine": "bench", "text": "folder not found: ~/srv"}])
+
+    def test_timers_the_config_changed_are_a_gap_on_this_machine(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            timers.install("main", self.fleet.load())
+        self.fleet.config('[recap]\nwhen = "Mon 08:30"\n')
+        self.assertEqual(self.view()["gaps"], [
+            {"machine": "anvil", "text": "the weekly timers here are not as [recap] says: "
+                                         "run `fleetlog timers install main`"}])
 
     def test_the_header_says_when_the_machines_were_read(self):
         text = self.recap()

@@ -1,15 +1,18 @@
 """The weekly notification on a viewer.
 
-The viewer's timer runs notify every hour from Friday afternoon to Sunday.
-It fetches the latest recap from the main machine and, the first time a
-recap from the last 3 days is there and has not been shown here, raises one
-notification. Clicking it opens the full recap in a terminal, from a copy
-written here, so opening it needs no second ssh call.
+The viewer's timer runs notify every hour on the day of the recap ([recap]
+when, Friday by default) and the two after. It fetches the latest recap from
+the main machine and, the first time a recap from the last 3 days is there
+and has not been shown here, raises one notification. Clicking it opens the
+full recap in a terminal, from a copy written here, so opening it needs no
+second ssh call. With the recap off, or this machine not in [recap] notify,
+it does nothing, and asks the main machine nothing.
 
-It is raised as critical, so it stays on screen until it is clicked or
-dismissed: the author is often away from the machine when it comes. Omarchy's
-shell keeps any other notification for 30 seconds at most. Critical does not
-get past Do Not Disturb there, which it only allows for plain notify-send.
+By default it is raised as critical, so it stays on screen until it is
+clicked or dismissed: the author is often away from the machine when it
+comes. With [recap] stays = false it is normal, and goes away by itself:
+Omarchy's shell keeps one for 30 seconds at most. Critical does not get past
+Do Not Disturb there, which it only allows for plain notify-send.
 
 A recap counts as shown once notify-send has put it up, not when it is
 clicked: notify-send --wait only returns when the notification closes, so a
@@ -17,7 +20,7 @@ notify-send still running after a few seconds means it is up. One that exits
 at once with an error (no notification daemon, a locked session) leaves the
 recap unshown, and the next hour tries again.
 
-Once the recap due last Friday has been shown here, it asks the main machine
+Once the recap last due has been shown here, it asks the main machine
 nothing until the next one is due. The timer also runs on a resume after
 :50 passed in sleep, whatever the day, and that run has nothing to show.
 
@@ -47,7 +50,14 @@ LINES = 4  # projects the notification names
 
 
 def run(cfg: Config) -> int:
-    if _shown_since(timers.last_weekly(time.time())):
+    here = cfg.here
+    if cfg.when is None:
+        print("the weekly recap is off in the config")
+        return 0
+    if not cfg.notifies(here):
+        print(f"{here} is not in [recap] notify, so it shows nothing")
+        return 0
+    if _shown_since(timers.last_weekly(time.time(), cfg.when)):
         print("this week's recap was shown here already")
         return 0
     try:
@@ -56,7 +66,7 @@ def run(cfg: Config) -> int:
         print(f"{e}; trying again next hour", file=sys.stderr)
         return 1
     except weekly.Unreachable as e:
-        return _say_unreachable(str(e))
+        return _say_unreachable(cfg, str(e))
     except weekly.NoRecap as e:
         print(e, file=sys.stderr)
         return 0 if "has been built" in str(e) else 1
@@ -84,7 +94,7 @@ def run(cfg: Config) -> int:
 
     # "default" is the action a click on the notification itself invokes;
     # Omarchy's shell invokes no other on a click.
-    argv = ["notify-send", f"--app-name={APP}", "--urgency=critical",
+    argv = ["notify-send", f"--app-name={APP}", _urgency(cfg),
             "--action=default=Open the recap", "--wait", "--", summary,
             html.escape(body, quote=False)]
     try:
@@ -142,12 +152,18 @@ def open_terminal(path: str) -> int:
     return 0
 
 
-def _say_unreachable(why: str) -> int:
+def _urgency(cfg: Config) -> str:
+    """Critical stays on screen until it is clicked or dismissed; normal goes
+    away by itself."""
+    return f"--urgency={'critical' if cfg.stays else 'normal'}"
+
+
+def _say_unreachable(cfg: Config, why: str) -> int:
     today = datetime.date.today().isoformat()
     if _read(SAID) != today:
         try:
             done = subprocess.run(
-                ["notify-send", f"--app-name={APP}", "--urgency=critical", "--",
+                ["notify-send", f"--app-name={APP}", _urgency(cfg), "--",
                  "fleetlog: no weekly recap",
                  html.escape(f"{why}. Trying again every hour.", quote=False)],
                 stdin=subprocess.DEVNULL, capture_output=True, timeout=30)

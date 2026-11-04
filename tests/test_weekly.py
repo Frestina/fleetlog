@@ -60,6 +60,13 @@ class WeeklyTest(FleetTest):
         self.assertEqual({k: v for k, v in after.items() if k != "tries"},
                          {k: v for k, v in before.items() if k != "tries"})
 
+    def test_with_the_recap_off_nothing_is_read(self):
+        self.fleet.config('[recap]\nwhen = "off"\n')
+        self.assertEqual(quiet(weekly.weekly, self.fleet.load()), 0)
+        self.assertEqual(quiet(weekly.retry, self.fleet.load()), 0)
+        self.assertEqual(self.fleet.calls(), [])
+        self.assertFalse((config.state_dir() / weekly.LATEST).exists())
+
     def test_retry_with_nothing_missed_reads_nothing(self):
         quiet(weekly.weekly, self.fleet.load())
         self.fleet.clear_calls()

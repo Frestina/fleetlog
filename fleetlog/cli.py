@@ -89,7 +89,8 @@ def parser() -> argparse.ArgumentParser:
     i = tsub.add_parser("install", help="install the timers for this machine's role")
     i.add_argument("role", choices=("main", "viewer"))
     tsub.add_parser("remove", help="remove every timer install wrote")
-    tsub.add_parser("status", help="show the installed timers")
+    tsub.add_parser("status", help="show the installed timers, and whether they are "
+                                   "what [recap] in the config says")
     sub.add_parser("uninstall", help="remove fleetlog from this machine, after asking",
                    description="Lists what fleetlog and its setup added on this machine "
                                "(timers, config, cache, state, the ~/.local/bin link), asks, "
@@ -113,9 +114,16 @@ def main(argv: list[str] | None = None) -> int:
         if args.cmd == "uninstall":
             return uninstall.run()
         if args.cmd == "timers":
-            if args.action == "install":
-                return timers.install(args.role)
-            return timers.remove() if args.action == "remove" else timers.status()
+            if args.action == "remove":
+                return timers.remove()
+            if args.action == "status":
+                try:
+                    cfg = config.load()
+                except config.ConfigError as e:
+                    print(f"note: {e}", file=sys.stderr)
+                    cfg = None
+                return timers.status(cfg)
+            return timers.install(args.role, config.load())
         if args.cmd == "ask-agent" and args.machine is None:
             agent.run(agent.setup())
         cfg = config.load()
@@ -167,13 +175,19 @@ def show(cfg: config.Config, facts: list[dict], start: int, until: int, as_json:
     try:
         projects = recap.build(facts, cfg.identities, start, until, cfg.exclude,
                                cfg.exclude_projects)
-        text = (recap.as_json if as_json else recap.markdown)(
-            facts, projects, start, until, status)
+        notices = timers.drift(cfg)
+        if as_json:
+            text = recap.as_json(facts, projects, start, until, status, notices)
+        else:
+            text = recap.markdown(facts, projects, start, until, status)
     except recap.UNREADABLE as e:
         print(f"fleetlog: the facts do not read ({type(e).__name__}: {e})", file=sys.stderr)
         return EXIT_ERROR
     sys.stdout.write(text)
-    if not cfg.identities and not as_json:
-        print("note: no identities found in your git config, so no commit counts as yours",
-              file=sys.stderr)
+    if not as_json:
+        if not cfg.identities:
+            print("note: no identities found in your git config, so no commit counts as "
+                  "yours", file=sys.stderr)
+        for notice in notices:
+            print(f"note: {notice}", file=sys.stderr)
     return EXIT_OK if recap.all_read(facts) else EXIT_GAPS

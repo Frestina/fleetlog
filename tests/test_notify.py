@@ -7,6 +7,7 @@ from io import StringIO
 from unittest import mock
 
 from fleetlog import notify, timers, weekly
+from fleetlog.config import WHEN
 from tests.fleet import FleetTest
 
 
@@ -64,6 +65,30 @@ class NotifyTest(FleetTest):
                 redirect_stdout(StringIO()), redirect_stderr(err):
             self.assertEqual(notify.run(self.cfg), 1)
         self.assertEqual(err.getvalue(), "the recap's facts do not read (KeyError: 'root')\n")
+        self.assertEqual(self.fleet.calls("notify-send"), [])
+
+    def test_one_that_does_not_stay(self):
+        self.fleet.config('[recap]\nstays = false\n')
+        self.cfg = self.fleet.load()
+        self.assertEqual(self.run_notify(), 0)
+        [call] = self.fleet.calls("notify-send")
+        self.assertIn("--urgency=normal", call)
+        self.assertNotIn("--urgency=critical", call)
+
+    def test_a_machine_not_in_notify_asks_and_shows_nothing(self):
+        self.fleet.config('[main]\nmachine = "bench"\n[recap]\nnotify = ["crate"]\n')
+        self.cfg = self.fleet.load()
+        self.fleet.clear_calls()
+        self.assertEqual(self.run_notify(), 0)
+        self.assertEqual(self.fleet.calls("ssh"), [])
+        self.assertEqual(self.fleet.calls("notify-send"), [])
+
+    def test_with_the_recap_off_nothing_is_asked_or_shown(self):
+        self.fleet.config('[main]\nmachine = "bench"\n[recap]\nwhen = "off"\n')
+        self.cfg = self.fleet.load()
+        self.fleet.clear_calls()
+        self.assertEqual(self.run_notify(), 0)
+        self.assertEqual(self.fleet.calls("ssh"), [])
         self.assertEqual(self.fleet.calls("notify-send"), [])
 
     def test_an_old_recap_is_not_shown(self):
@@ -126,7 +151,18 @@ class LastWeeklyTest(unittest.TestCase):
         self.assertEqual(self.due(2026, 10, 30, 15, 50), datetime.datetime(2026, 10, 30, 15, 15))
 
     def test_matches_the_timer(self):
-        self.assertIn("OnCalendar=Fri *-*-* 15:15:00", timers.MAIN[0].schedule)
+        weekly_timer = timers.timers("main", WHEN)[0]
+        self.assertIn("OnCalendar=Fri *-*-* 15:15:00", weekly_timer.schedule)
+
+    def test_another_day_and_time(self):
+        # Mon Oct 26 2026 08:30
+        monday = datetime.datetime(2026, 10, 26, 8, 30)
+        when = (0, 8, 30)
+        due = lambda *t: datetime.datetime.fromtimestamp(  # noqa: E731
+            timers.last_weekly(datetime.datetime(*t).timestamp(), when))
+        self.assertEqual(due(2026, 10, 30, 15, 15), monday)  # Friday
+        self.assertEqual(due(2026, 11, 2, 8, 29), monday)
+        self.assertEqual(due(2026, 11, 2, 8, 30), datetime.datetime(2026, 11, 2, 8, 30))
 
 
 if __name__ == "__main__":

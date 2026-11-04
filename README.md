@@ -166,9 +166,10 @@ On a machine that is always on:
 fleetlog timers install main
 ```
 
-It builds the recap Fridays at 15:15 at the lowest priority, and tries
-machines it could not reach again every hour until Sunday. On the machines
-you sit at, with `machine = "<its label>"` under `[main]` in the config:
+It builds the recap of the 7 days before, Fridays at 15:15 unless the
+config says otherwise, at the lowest priority, and tries machines it could
+not reach again every hour for two more days. On the machines you sit at,
+with `machine = "<its label>"` under `[main]` in the config:
 
 ```
 fleetlog timers install viewer
@@ -177,6 +178,23 @@ fleetlog latest       # the last weekly recap, any time
 
 They show a notification once the week's recap is ready. It stays until you
 click it away, and clicking it opens the recap in a terminal.
+
+`[recap]` in the config changes all of that: another day and time, or `"off"`;
+only some machines to show it; a notification that goes away by itself. A
+changed time is written into the timers when they are installed, so run
+`fleetlog timers install` again on the machines that have them. Until you
+do, the panel and `fleetlog timers status` say so.
+
+```toml
+[recap]
+when = "Mon 08:30"                  # or "off"; not on the hour or at :02, :07...
+notify = ["laptop"]                 # or "all", the default
+stays = false                       # true, the default: until it is clicked
+```
+
+Fleet doctor reads the machines on the hour and every 5 minutes from :02,
+and fleetlog keeps off those minutes, so the config refuses a time on one
+of them and names the nearest free ones.
 
 ## Settings
 
@@ -188,6 +206,11 @@ double quotes, lists in brackets.
 ```toml
 [main]
 machine = "homeserver"              # builds the weekly recap
+
+[recap]
+when = "Fri 15:15"                  # when it is built, or "off"
+notify = "all"                      # the machines that show it
+stays = true                        # the notification stays until clicked
 
 [folders]
 all = ["~/Projects", "~/dotfiles"]  # where repos are looked for, 4 levels deep

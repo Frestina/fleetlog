@@ -8,7 +8,8 @@
 //     window     "Oct 16 to Oct 23"
 //     readLine   "Read from a and b. Not reached: c."
 //     gaps       [{machine, text}]: not reached, cut off, repos that did not read,
-//                folders named for a machine that are not there
+//                folders named for a machine that are not there, and notices
+//                about this machine's setup
 //     attention  [project]: something left off, newest commit first
 //     worked     [project]: commits and nothing left off, newest first
 //     quiet      projects with neither, counted
@@ -101,6 +102,12 @@ function gaps(data) {
     unfound.forEach(function(f) {
       out.push({ machine: label, text: "folder not found: " + clean(f) })
     })
+  })
+  // About this machine's setup, such as timers the config has changed.
+  var here = data.machines.filter(function(m) { return m.local === true })[0]
+  var notices = Array.isArray(data.notices) ? data.notices : []
+  notices.forEach(function(text) {
+    out.push({ machine: here ? clean(here.label) : "", text: clean(String(text)) })
   })
   return out
 }

@@ -82,6 +82,57 @@ emails = ["Old@Example.org"]
                     self.fleet.load()
 
 
+class RecapSettingsTest(FleetTest):
+    def test_by_default_friday_at_15_15_on_every_viewer_and_it_stays(self):
+        cfg = self.fleet.load()
+        self.assertEqual((cfg.when, cfg.notify, cfg.stays), ((4, 15, 15), None, True))
+        self.assertTrue(cfg.notifies("crate"))
+
+    def test_another_time_some_machines_and_not_staying(self):
+        self.fleet.config('[recap]\nwhen = "monday 08:30"\nnotify = ["bench"]\n'
+                          'stays = false\n')
+        cfg = self.fleet.load()
+        self.assertEqual((cfg.when, cfg.notify, cfg.stays), ((0, 8, 30), ("bench",), False))
+        self.assertEqual([cfg.notifies(m) for m in ("anvil", "bench")], [False, True])
+
+    def test_off(self):
+        self.fleet.config('[recap]\nwhen = "off"\n')
+        cfg = self.fleet.load()
+        self.assertIsNone(cfg.when)
+        self.assertFalse(cfg.notifies("anvil"))
+
+    def test_a_machine_it_skips_can_still_show_it(self):
+        self.fleet.config('[machines]\nskip = ["crate"]\n[recap]\nnotify = ["crate"]\n')
+        self.assertEqual(self.fleet.load().notify, ("crate",))
+
+    def test_this_machine_is_known_when_it_is_skipped(self):
+        self.fleet.config('[machines]\nskip = ["anvil"]\n[recap]\nnotify = ["anvil"]\n')
+        cfg = self.fleet.load()
+        self.assertEqual(cfg.here, "anvil")
+        self.assertNotIn("anvil", [m.label for m in cfg.machines])
+        self.assertTrue(cfg.notifies(cfg.here))
+
+    def test_says_what_is_wrong(self):
+        for text, says in (
+                ('when = "Fri"', 'when must be a day and a time, like when = "Fri 15:15", or "off"'),
+                ('when = "Fri 25:10"', "on a 24-hour clock"),
+                ('when = "Fri 9:5"', "on a 24-hour clock"),
+                ('when = "Funday 10:10"', "on a 24-hour clock"),
+                ("when = 5", "when must be a day and a time"),
+                ('when = "Fri 15:00"', 'when = "Fri 15:00" is when Fleet doctor reads the '
+                                       "machines (on the hour and every 5 minutes from :02); "
+                                       "take 14:59 or 15:01"),
+                ('when = "Fri 9:07"', "take 09:06 or 09:08"),
+                ('notify = "bench"', 'notify must be "all" or a list of machines'),
+                ('notify = ["bench", "nas"]', "notify names nas, which is not one of the "
+                                              "machines (anvil, bench, crate)"),
+                ('stays = "no"', "stays must be true or false")):
+            with self.subTest(text=text):
+                self.fleet.config(f"[recap]\n{text}\n")
+                with self.assertRaisesRegex(config.ConfigError, re.escape(says)):
+                    self.fleet.load()
+
+
 class MachinesTest(FleetTest):
     def hosts(self) -> Path:
         return self.fleet.home("anvil") / ".config" / "fleet" / "hosts"
