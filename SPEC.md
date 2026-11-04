@@ -294,6 +294,9 @@ is an error that names the setting, as is a file that is not TOML.
 - **For development**, the checkout is linked into the plugins folder
   instead, so a pull rolls it out. The shell does not reload a linked plugin
   by itself: `omarchy restart shell` after a pull that changes `panel/`.
+- The command writes nothing into its own folder, not even Python's
+  `__pycache__`: the shell watches a plugin's folder and reloads the plugin
+  for every file that appears there.
 - The timers run the command where it was when they were installed. The
   plugin's folder keeps its path across updates, so they keep working.
 - **`fleetlog uninstall`**, or Uninstall in the panel, lists what
