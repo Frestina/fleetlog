@@ -169,7 +169,7 @@ def show(cfg: config.Config, facts: list[dict], start: int, until: int, as_json:
                                cfg.exclude_projects)
         text = (recap.as_json if as_json else recap.markdown)(
             facts, projects, start, until, status)
-    except (KeyError, TypeError, ValueError, AttributeError) as e:
+    except recap.UNREADABLE as e:
         print(f"fleetlog: the facts do not read ({type(e).__name__}: {e})", file=sys.stderr)
         return EXIT_ERROR
     sys.stdout.write(text)

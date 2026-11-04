@@ -29,6 +29,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 SCHEMA = 1
+# What build and the renderers raise on facts of the wrong shape.
+UNREADABLE = (KeyError, TypeError, ValueError, AttributeError)
 SHOWN = 10  # commits a project lists in the Markdown recap
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 _BEHIND = re.compile(r"behind (\d+)")

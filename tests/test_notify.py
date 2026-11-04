@@ -55,6 +55,17 @@ class NotifyTest(FleetTest):
         with open(copy) as f:
             self.assertIn("## tool", f.read())
 
+    def test_facts_that_do_not_read_are_one_line_of_error(self):
+        data = weekly.load_local()
+        data["facts"][0]["repos"] = [{"path": "~/Projects/tool"}]
+        weekly.save(data)
+        err = StringIO()
+        with mock.patch.dict(os.environ, {"FL_NOTIFY": "ok"}), \
+                redirect_stdout(StringIO()), redirect_stderr(err):
+            self.assertEqual(notify.run(self.cfg), 1)
+        self.assertEqual(err.getvalue(), "the recap's facts do not read (KeyError: 'root')\n")
+        self.assertEqual(self.fleet.calls("notify-send"), [])
+
     def test_an_old_recap_is_not_shown(self):
         data = weekly.load_local()
         data["until"] -= notify.SHOW_FOR + 60

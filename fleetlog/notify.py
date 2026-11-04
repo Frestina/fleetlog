@@ -70,12 +70,17 @@ def run(cfg: Config) -> int:
         print("this week's recap was shown here already")
         return 0
 
-    projects = recap.build(data["facts"], cfg.identities, data["since"], data["until"],
-                           cfg.exclude, cfg.exclude_projects)
+    try:
+        projects = recap.build(data["facts"], cfg.identities, data["since"], data["until"],
+                               cfg.exclude, cfg.exclude_projects)
+        markdown = recap.markdown(data["facts"], projects, data["since"], data["until"])
+        summary, body = text(data, projects)
+    except recap.UNREADABLE as e:
+        print(f"the recap's facts do not read ({type(e).__name__}: {e})", file=sys.stderr)
+        return 1
     copy = weekly.state_file(COPY)
     copy.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    copy.write_text(recap.markdown(data["facts"], projects, data["since"], data["until"]))
-    summary, body = text(data, projects)
+    copy.write_text(markdown)
 
     # "default" is the action a click on the notification itself invokes;
     # Omarchy's shell invokes no other on a click.
