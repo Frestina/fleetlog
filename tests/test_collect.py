@@ -157,6 +157,14 @@ class CollectTest(FleetTest):
                          ["a", "b"])
         self.assertIn(str(self.fleet.home("crate") / "dotfiles"), facts[2]["missing"])
 
+    def test_a_folder_named_for_a_machine_that_is_not_there(self):
+        self.fleet.repo("bench", "Projects/a")
+        self.fleet.config('[folders]\nall = ["~/Projects", "~/Code"]\n'
+                          'bench = ["~/srv", "~/Projects"]\n')
+        facts = collect.collect_all(self.fleet.load(), *ALL)
+        self.assertEqual([f["folders_not_found"] for f in facts], [[], ["~/srv"], []])
+        self.assertIn(str(self.fleet.home("anvil") / "Code"), facts[0]["missing"])
+
     def test_overlapping_folders_read_a_repo_once(self):
         self.fleet.repo("anvil", "Projects/Personal/a")
         self.fleet.config('[folders]\nall = ["~/Projects", "~/Projects/Personal"]\n')

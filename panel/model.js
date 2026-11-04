@@ -7,7 +7,8 @@
 //     header     "Read at 14:20" today, or "Read Tue 14:20" on another day
 //     window     "Oct 16 to Oct 23"
 //     readLine   "Read from a and b. Not reached: c."
-//     gaps       [{machine, text}]: not reached, cut off, repos that did not read
+//     gaps       [{machine, text}]: not reached, cut off, repos that did not read,
+//                folders named for a machine that are not there
 //     attention  [project]: something left off, newest commit first
 //     worked     [project]: commits and nothing left off, newest first
 //     quiet      projects with neither, counted
@@ -95,6 +96,10 @@ function gaps(data) {
     var problems = m.problems || []
     problems.forEach(function(p) {
       out.push({ machine: label, text: (p.path ? clean(p.path) + ": " : "") + clean(p.reason) })
+    })
+    var unfound = m.folders_not_found || []
+    unfound.forEach(function(f) {
+      out.push({ machine: label, text: "folder not found: " + clean(f) })
     })
   })
   return out

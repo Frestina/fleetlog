@@ -191,7 +191,7 @@ machine = "homeserver"              # builds the weekly recap
 
 [folders]
 all = ["~/Projects", "~/dotfiles"]  # where repos are looked for, 4 levels deep
-homeserver = ["~/srv"]              # more on one machine
+homeserver = ["~/srv"]              # more on one machine, said if not there
 
 [machines]
 nas = "nas"                         # a machine only fleetlog reads

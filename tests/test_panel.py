@@ -108,6 +108,11 @@ class PanelTest(FleetTest):
         self.assertTrue(gap["text"].startswith("not reached: ssh: connect to host crate"), gap)
         self.assertEqual(view["readLine"], "Read from anvil and bench. Not reached: crate.")
 
+    def test_a_folder_named_for_a_machine_that_is_not_there_is_a_gap(self):
+        self.fleet.config('[folders]\nbench = ["~/srv"]\n')
+        self.assertEqual(self.view()["gaps"],
+                         [{"machine": "bench", "text": "folder not found: ~/srv"}])
+
     def test_the_header_says_when_the_machines_were_read(self):
         text = self.recap()
         until = datetime.datetime.fromisoformat(json.loads(text)["until"]).astimezone(

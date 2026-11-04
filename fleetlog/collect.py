@@ -9,9 +9,10 @@ sessions, and an unattended run must never raise a key prompt.
 What comes back is a machine's facts, a plain dict that json can store:
 
     label, local, reached, complete, error, hostname, read_at, home,
-    missing (folders not there), problems (repos that did not read),
+    missing (folders not there), folders_not_found (those of them named for
+    this machine in [folders]), problems (repos that did not read),
     repos: path, root, email, synced, remotes, head, branches, commits,
-           made, changed, untracked, stashes
+           made, changed, untracked, stashes, common (the git common dir)
 
 A machine that never answered is reached=False with the ssh error. One that
 answered but whose output stops before the end record is complete=False:
@@ -61,9 +62,19 @@ def collect_all(cfg: Config, since: int, until: int,
     each saying whether it is the machine they were read from."""
     machines = cfg.machines if machines is None else machines
     with ThreadPoolExecutor(max_workers=max(1, len(machines))) as pool:
-        return list(pool.map(
-            lambda m: {**collect(m, since, until, cfg.folders_for(m.label)), "local": m.local},
-            machines))
+        return list(pool.map(lambda m: _read(cfg, m, since, until), machines))
+
+
+def _read(cfg: Config, machine: Machine, since: int, until: int) -> dict:
+    facts = {**collect(machine, since, until, cfg.folders_for(machine.label)),
+             "local": machine.local}
+    # A folder named for this machine that is not there is most likely a typo;
+    # one for all machines may just not be on every one.
+    home, missing = facts.get("home"), set(facts.get("missing", []))
+    facts["folders_not_found"] = [
+        f for f in cfg.folders.get(machine.label, ())
+        if (home + f[1:] if home and (f == "~" or f.startswith("~/")) else f) in missing]
+    return facts
 
 
 def collect(machine: Machine, since: int, until: int, folders: Sequence[str]) -> dict:

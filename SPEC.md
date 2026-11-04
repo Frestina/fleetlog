@@ -235,6 +235,9 @@ The panel can hand what it shows to the user's default coding agent
 - **Repos**: found by searching folders on each machine, `~/Projects` and
   `~/dotfiles` by default, 4 levels deep. The config can add folders for every
   machine or for one machine, and exclude repos by folder or projects by name.
+  A folder named for one machine that is not there is shown, under "Folders
+  not found" and in the panel; one for every machine is not, since it may be
+  on only some.
 - **The same repo on several machines** is one project, matched by its first
   commit, so a renamed folder or remote still matches. Two clones of it on
   one machine are left off each on their own, named by path. Worktrees of

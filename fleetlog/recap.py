@@ -296,6 +296,11 @@ def _gaps(facts: Sequence[dict]) -> list[str]:
                 where = f"{clean(pr['path'])}: " if pr["path"] else ""
                 out.append(f"- {m['label']}: {where}{clean(pr['reason'])}")
         out.append("")
+    unfound = [(m["label"], f) for m in facts for f in m.get("folders_not_found", [])]
+    if unfound:
+        out += ["## Folders not found", ""]
+        out += [f"- {label}: {clean(f)}, named for it in [folders]" for label, f in unfound]
+        out.append("")
     return out
 
 
@@ -315,6 +320,7 @@ def as_json(facts: Sequence[dict], projects: Sequence[Project], since: int, unti
             "read_at": _stamp(m["read_at"]) if m.get("read_at") else None,
             "tries": m.get("tries", 1),
             "problems": m.get("problems", []), "missing_folders": m.get("missing", []),
+            "folders_not_found": m.get("folders_not_found", []),
         } for m in facts],
         "projects": [{
             "name": p.name, "account": p.account, "root": p.key if ":" not in p.key else None,

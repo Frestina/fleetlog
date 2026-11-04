@@ -85,6 +85,15 @@ class RecapTest(FleetTest):
                           ("never-pushed", "side", "anvil: branch side was never pushed "
                                                    "(1 commit)")])
 
+    def test_a_folder_named_for_a_machine_that_is_not_there_is_said(self):
+        self.fleet.config('[folders]\nbench = ["~/srv"]\n')
+        facts, projects = self.build()
+        text = recap.markdown(facts, projects, *ALL)
+        self.assertIn("## Folders not found\n\n- bench: ~/srv, named for it in [folders]\n",
+                      text)
+        self.assertEqual(json.loads(recap.as_json(facts, projects, *ALL))["machines"][1]
+                         ["folders_not_found"], ["~/srv"])
+
     def test_exclude(self):
         self.fleet.repo("anvil", "Projects/keep")
         self.fleet.repo("anvil", "Projects/scratch/thing")
