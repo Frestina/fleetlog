@@ -20,6 +20,12 @@ notify-send still running after a few seconds means it is up. One that exits
 at once with an error (no notification daemon, a locked session) leaves the
 recap unshown, and the next hour tries again.
 
+It follows the main machine's [recap] when, which every recap it builds
+keeps: the last one fetched says when the next is due, and one built at a
+time this machine does not expect is still shown while it is the latest one
+due, with a line that says the two differ. Its own timer runs on the days
+its own config gives, so the two should be set the same.
+
 Once the recap last due has been shown here, it asks the main machine
 nothing until the next one is due. The timer also runs on a resume after
 :50 passed in sleep, whatever the day, and that run has nothing to show.
@@ -32,12 +38,13 @@ It never collects on its own instead.
 
 import datetime
 import html
+import json
 import shutil
 import subprocess
 import sys
 import time
 
-from fleetlog import recap, timers, weekly
+from fleetlog import config, recap, timers, weekly
 from fleetlog.config import Config
 
 APP = "fleetlog"
@@ -57,7 +64,10 @@ def run(cfg: Config) -> int:
     if not cfg.notifies(here):
         print(f"{here} is not in [recap] notify, so it shows nothing")
         return 0
-    if _shown_since(timers.last_weekly(time.time(), cfg.when)):
+    # The main machine's time, once a recap from it has said it, or this
+    # machine's own until then.
+    known = timers.main_when()
+    if _shown_since(timers.last_weekly(time.time(), known or cfg.when)):
         print("this week's recap was shown here already")
         return 0
     try:
@@ -72,7 +82,15 @@ def run(cfg: Config) -> int:
         return 0 if "has been built" in str(e) else 1
     weekly.state_file(SAID).unlink(missing_ok=True)
 
-    if time.time() - data["until"] > SHOW_FOR:
+    theirs = config.stored_when(data.get("when"))
+    if theirs is not None and theirs != known:
+        _write(timers.MAIN_WHEN, json.dumps(list(theirs)))
+    differs = theirs is not None and theirs != cfg.when
+    # A recap built at a time this machine does not expect may come days
+    # before its timer runs: it is still shown while it is the latest one due.
+    fresh = time.time() - data["until"] <= SHOW_FOR or (
+        differs and data["until"] >= timers.last_weekly(time.time(), theirs))
+    if not fresh:
         print("no recap from the last few days to show")
         return 0
     wid = weekly.window_id(data)
@@ -85,6 +103,8 @@ def run(cfg: Config) -> int:
                                cfg.exclude, cfg.exclude_projects)
         markdown = recap.markdown(data["facts"], projects, data["since"], data["until"])
         summary, body = text(data, projects)
+        if differs:
+            body += "\n" + timers.schedule_note(cfg, theirs)
     except recap.UNREADABLE as e:
         print(f"the recap's facts do not read ({type(e).__name__}: {e})", file=sys.stderr)
         return 1

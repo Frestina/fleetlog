@@ -25,6 +25,13 @@ class WeeklyTest(FleetTest):
         self.assertEqual([f["reached"] for f in data["facts"]], [True, True, False])
         self.assertEqual(data["facts"][2]["tries"], 1)
 
+    def test_the_recap_keeps_when_it_is_built(self):
+        quiet(weekly.weekly, self.fleet.load())
+        self.assertEqual(self.stored()["when"], [4, 15, 15])
+        self.fleet.config('[recap]\nwhen = "Mon 08:30"\n')
+        quiet(weekly.weekly, self.fleet.load())
+        self.assertEqual(self.stored()["when"], [0, 8, 30])
+
     def test_retry_reads_only_what_was_missed_with_the_same_window(self):
         self.fleet.unreachable("crate")
         quiet(weekly.weekly, self.fleet.load())

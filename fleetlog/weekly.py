@@ -1,7 +1,8 @@
 """The weekly recap on the main machine, and fetching it from anywhere.
 
 weekly reads every machine for the last 7 days and stores their facts in
-latest.json in the state folder, replacing last week's: past weeks are not
+latest.json in the state folder, with this machine's [recap] when, which the
+viewers follow, replacing last week's: past weeks are not
 kept, since --since builds any of them again. weekly --retry reads only the
 machines that were not reached or not fully read, with the same window, and
 stores what it gets. It does nothing more than 3 days after the window ends,
@@ -75,8 +76,9 @@ def weekly(cfg: Config) -> int:
         facts = collect.collect_all(cfg, since, until)
         for f in facts:
             f["tries"], f["first_tried"] = 1, f["read_at"]
+        # when: the main machine's [recap] when, which viewers follow.
         save({"schema": recap.SCHEMA, "since": since, "until": until, "built_at": until,
-              "updated_at": until, "facts": facts})
+              "updated_at": until, "when": list(cfg.when), "facts": facts})
         _report(facts)
         return 0 if recap.all_read(facts) else 1
 

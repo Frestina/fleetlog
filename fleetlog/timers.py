@@ -22,6 +22,7 @@ Every unit starts with MARK, so remove takes away only what install wrote.
 """
 
 import datetime
+import json
 import os
 import string
 import subprocess
@@ -55,6 +56,9 @@ QUIET = ("Nice=19", "CPUSchedulingPolicy=idle", "IOSchedulingClass=idle", "Memor
 WHAT = {"fleetlog-weekly": "the weekly recap",
         "fleetlog-retry": "the retry of machines not reached",
         "fleetlog-notify": "the weekly notification"}
+# In the state folder: when the main machine builds the recap, as the last
+# recap fetched from it said.
+MAIN_WHEN = "main-when"
 MAIN = ("fleetlog-weekly", "fleetlog-retry")
 VIEWER = ("fleetlog-notify",)
 ROLES = {"main": MAIN, "viewer": VIEWER}
@@ -280,10 +284,31 @@ def drift(cfg: Config) -> list[str]:
         if any(_text(where / f"{n}.timer") != want[f"{n}.timer"] for n in names):
             out.append(f"the {'weekly' if role == 'main' else 'notification'} timers here "
                        f"are not as [recap] says: run `fleetlog timers install {role}`")
+    if have["viewer"] and cfg.notifies(here):
+        theirs = main_when()
+        if theirs is not None and theirs != cfg.when:
+            out.append(schedule_note(cfg, theirs))
     if not have["viewer"] and cfg.notify is not None and here in cfg.notify:
         out.append(f"{here} is in [recap] notify but has no notification timer: run "
                    "`fleetlog timers install viewer`")
     return out
+
+
+def main_when() -> tuple[int, int, int] | None:
+    """When the main machine builds the recap, as its last recap fetched here
+    said, or None before one did."""
+    try:
+        text = (config.state_dir() / MAIN_WHEN).read_text()
+        return config.stored_when(json.loads(text))
+    except (OSError, ValueError):
+        return None
+
+
+def schedule_note(cfg: Config, theirs: tuple[int, int, int]) -> str:
+    main = cfg.main or "the main machine"
+    mine = config.when_text(cfg.when) if cfg.when else "off"
+    return (f"{main} builds the recap {config.when_text(theirs)}, but [recap] when here is "
+            f"{mine}: set it the same here, then run `fleetlog timers install viewer`")
 
 
 def _text(path: Path) -> str | None:

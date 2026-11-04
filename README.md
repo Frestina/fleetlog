@@ -183,7 +183,9 @@ click it away, and clicking it opens the recap in a terminal.
 only some machines to show it; a notification that goes away by itself. A
 changed time is written into the timers when they are installed, so run
 `fleetlog timers install` again on the machines that have them. Until you
-do, the panel and `fleetlog timers status` say so.
+do, the panel and `fleetlog timers status` say so. Set it the same on every
+machine: a machine that shows the recap follows the main machine's time,
+but says so, and may show it late, while its own differs.
 
 ```toml
 [recap]

@@ -6,7 +6,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from unittest import mock
 
-from fleetlog import notify, timers, weekly
+from fleetlog import config, notify, timers, weekly
 from fleetlog.config import WHEN
 from tests.fleet import FleetTest
 
@@ -90,6 +90,55 @@ class NotifyTest(FleetTest):
         self.assertEqual(self.run_notify(), 0)
         self.assertEqual(self.fleet.calls("ssh"), [])
         self.assertEqual(self.fleet.calls("notify-send"), [])
+
+    def built_at_another_time(self, days_ago: float) -> tuple[int, int, int]:
+        """The stored recap as a main machine on another schedule built it,
+        days_ago, with that time as its [recap] when."""
+        t = datetime.datetime.fromtimestamp(time.time() - days_ago * 24 * 3600)
+        if (t.weekday(), t.hour, t.minute) == WHEN:
+            t -= datetime.timedelta(minutes=1)
+        theirs = (t.weekday(), t.hour, t.minute)
+        data = weekly.load_local()
+        data["until"], data["when"] = int(t.timestamp()), list(theirs)
+        weekly.save(data)
+        return theirs
+
+    def test_the_main_machines_time_is_followed_and_said(self):
+        theirs = self.built_at_another_time(4)  # past SHOW_FOR, but the latest due
+        self.assertNotEqual(theirs, self.cfg.when)
+        self.assertEqual(self.run_notify(), 0)
+        [call] = self.fleet.calls("notify-send")
+        note = (f"the main machine builds the recap {config.when_text(theirs)}, but [recap] "
+                "when here is Fri 15:15: set it the same here, then run "
+                "`fleetlog timers install viewer`")
+        self.assertTrue(call[-1].endswith("\n" + note), call[-1])
+        self.assertEqual(timers.main_when(), theirs)
+        # Shown for the main machine's time, so the next run asks nothing.
+        self.fleet.config('[main]\nmachine = "bench"\n')
+        self.cfg = self.fleet.load()
+        self.fleet.unreachable("bench")
+        self.fleet.clear_calls()
+        self.assertEqual(self.run_notify(), 0)
+        self.assertEqual(self.fleet.calls("ssh"), [])
+        # And this machine says so wherever its timers are checked.
+        with redirect_stdout(StringIO()):
+            timers.install("viewer", self.cfg)
+        self.assertEqual(timers.drift(self.cfg),
+                         [note.replace("the main machine", "bench")])
+
+    def test_a_recap_from_the_last_week_at_another_time_is_not_shown(self):
+        self.built_at_another_time(8)
+        self.assertEqual(self.run_notify(), 0)
+        self.assertEqual(self.fleet.calls("notify-send"), [])
+
+    def test_a_recap_from_before_the_time_was_kept_is_shown_as_before(self):
+        data = weekly.load_local()
+        del data["when"]
+        weekly.save(data)
+        self.assertEqual(self.run_notify(), 0)
+        [call] = self.fleet.calls("notify-send")
+        self.assertNotIn("builds the recap", call[-1])
+        self.assertIsNone(timers.main_when())
 
     def test_an_old_recap_is_not_shown(self):
         data = weekly.load_local()

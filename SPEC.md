@@ -310,6 +310,14 @@ is an error that names the setting, as is a file that is not TOML.
   timer on a machine not in `notify`, and a machine named in `notify`
   without one. A machine can only tell about its own timers: nothing is
   installed or checked on another machine.
+- Each machine has its own config, so `when` can differ between the main
+  machine and a viewer. Every recap keeps the main machine's `when`, and a
+  viewer follows it: the last recap it fetched says when the next one is
+  due, and a recap built at a time the viewer does not expect is still shown
+  while it is the latest one due, with a line saying the two differ. The
+  viewer's timer still runs on the days its own `when` gives, so the recap
+  may come days late until they match; until then `timers status` and the
+  panel on that viewer say what to set.
 
 ## Install and remove
 

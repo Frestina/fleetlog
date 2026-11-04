@@ -256,6 +256,22 @@ def load() -> Config:
     )
 
 
+def when_text(when: tuple[int, int, int]) -> str:
+    day, hour, minute = when
+    return f"{DAYS[day]} {hour:02}:{minute:02}"
+
+
+def stored_when(value: object) -> tuple[int, int, int] | None:
+    """A recap time as a recap or the state folder keeps it, [day, hour,
+    minute], or None for anything else, such as a recap from before it was
+    kept."""
+    if (isinstance(value, list) and len(value) == 3
+            and all(isinstance(v, int) and not isinstance(v, bool) for v in value)
+            and 0 <= value[0] <= 6 and 0 <= value[1] <= 23 and 0 <= value[2] <= 59):
+        return value[0], value[1], value[2]
+    return None
+
+
 def _when(value: object) -> tuple[int, int, int] | None:
     usage = f'{config_path()}: [recap] when must be a day and a time, like when = "Fri 15:15"'
     if value == "off":
