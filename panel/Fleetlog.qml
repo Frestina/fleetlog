@@ -322,9 +322,12 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     // The count beside the glyph, on a horizontal bar; a vertical one has no
-    // room, and the tooltip says it.
+    // room, and the tooltip says it. The count goes in labelText, as the
+    // battery's percentage does: the shell fits all of text into one icon's
+    // box, so a count there would shrink the glyph with it.
     readonly property bool counted: root.count > 0 && !vertical
-    text: counted ? root.glyphCommit + " " + root.count : root.glyphCommit
+    text: root.glyphCommit
+    labelText: counted ? String(root.count) : ""
     slotSize: Style.bar.iconSlot * (counted ? 1.1 + 0.5 * String(root.count).length : 1)
     tooltipText: root.opened ? "" : root.tooltipText
     onPressed: function(b) {
