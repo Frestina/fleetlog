@@ -24,8 +24,9 @@ and change it in the same commit when a decision changes.
   into what the panel shows, and is where its logic goes, so it can be
   tested. The command works on its own, in a terminal and without Omarchy
   or Fleetwatch.
-- `demo/run`: retakes `preview.png`, the README's picture of the panel, from
-  the running shell with the fictional fleet in `demo/fixtures/read.json`.
+- `demo/run`: retakes `preview.png` and `preview-project.png`, the README's
+  pictures of the panel by machine and by project, from the running shell
+  with the fictional fleet in `demo/fixtures/read.json`.
 - `tests/`: `./tests/run` runs everything. `tests/fleet.py` builds a fake
   fleet of throwaway homes, and `tests/bin` holds the fakes (ssh,
   notify-send, systemctl and more) so no test touches a real machine.

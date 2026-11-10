@@ -1,4 +1,5 @@
-"""demo/fixtures/read.json, the fictional fleet in preview.png: it still reads
+"""demo/fixtures/read.json, the fictional fleet in preview.png and
+preview-project.png: it still reads
 with this version, and shows what the preview is meant to."""
 
 import json
