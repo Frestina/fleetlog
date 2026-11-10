@@ -237,7 +237,11 @@
        "name": "main",
        "upstream": "origin/main",
        "track": null,
-       "unpushed": 0
+       "unpushed": 0,
+       "upstream_tip": "8e266752439652be14713cbe899cfa0e4fa07ea2",
+       "upstream_time": 1792650000,
+       "remote_branch": "main",
+       "remote": "ada/dotfiles"
       }
      ],
      "commits": [
@@ -269,7 +273,21 @@
      "made": [],
      "changed": 0,
      "untracked": 0,
-     "stashes": 0
+     "stashes": 0,
+     "history": {
+      "8e266752439652be14713cbe899cfa0e4fa07ea2": [
+       "dbb9c44831c25683fb55f251c0edab3cff76434a"
+      ],
+      "dbb9c44831c25683fb55f251c0edab3cff76434a": [
+       "a18ecd9d9acd2300bd00be2865fd1685bdd245fb"
+      ],
+      "a18ecd9d9acd2300bd00be2865fd1685bdd245fb": [
+       "ef25d6957b7e33621c4c766831106befd5d79ec8"
+      ],
+      "ef25d6957b7e33621c4c766831106befd5d79ec8": [
+       "bd77cbb3b320e12429a0d735d6aada0d35c6045f"
+      ]
+     }
     }
    ],
    "local": true
@@ -297,7 +315,11 @@
        "name": "main",
        "upstream": "origin/main",
        "track": "ahead 2",
-       "unpushed": 2
+       "unpushed": 2,
+       "upstream_tip": "8e266752439652be14713cbe899cfa0e4fa07ea2",
+       "upstream_time": 1792650000,
+       "remote_branch": "main",
+       "remote": "ada/dotfiles"
       }
      ],
      "commits": [
@@ -348,7 +370,21 @@
      ],
      "changed": 7,
      "untracked": 2,
-     "stashes": 0
+     "stashes": 0,
+     "history": {
+      "8e266752439652be14713cbe899cfa0e4fa07ea2": [
+       "dbb9c44831c25683fb55f251c0edab3cff76434a"
+      ],
+      "dbb9c44831c25683fb55f251c0edab3cff76434a": [
+       "a18ecd9d9acd2300bd00be2865fd1685bdd245fb"
+      ],
+      "a18ecd9d9acd2300bd00be2865fd1685bdd245fb": [
+       "ef25d6957b7e33621c4c766831106befd5d79ec8"
+      ],
+      "ef25d6957b7e33621c4c766831106befd5d79ec8": [
+       "bd77cbb3b320e12429a0d735d6aada0d35c6045f"
+      ]
+     }
     },
     {
      "path": "/home/ada/Projects/invoice-tool",
@@ -486,6 +522,52 @@
      "changed": 0,
      "untracked": 0,
      "stashes": 0
+    },
+    {
+     "path": "/home/ada/dotfiles",
+     "root": "96fd84ac66a05ed7c5b98ef8900ea1c3181decfb",
+     "email": "personal",
+     "synced": 1792491600,
+     "remotes": 1,
+     "head": "main",
+     "branches": [
+      {
+       "name": "main",
+       "upstream": "origin/main",
+       "track": null,
+       "unpushed": 0,
+       "upstream_tip": "a18ecd9d9acd2300bd00be2865fd1685bdd245fb",
+       "upstream_time": 1792480800,
+       "remote_branch": "main",
+       "remote": "ada/dotfiles"
+      }
+     ],
+     "commits": [
+      {
+       "hash": "a18ecd9d9acd2300bd00be2865fd1685bdd245fb",
+       "email": "personal",
+       "time": 1792480800,
+       "subject": "Split the shell aliases by tool"
+      },
+      {
+       "hash": "ef25d6957b7e33621c4c766831106befd5d79ec8",
+       "email": "personal",
+       "time": 1792387200,
+       "subject": "Drop the old status bar config"
+      }
+     ],
+     "made": [],
+     "changed": 0,
+     "untracked": 0,
+     "stashes": 0,
+     "history": {
+      "a18ecd9d9acd2300bd00be2865fd1685bdd245fb": [
+       "ef25d6957b7e33621c4c766831106befd5d79ec8"
+      ],
+      "ef25d6957b7e33621c4c766831106befd5d79ec8": [
+       "bd77cbb3b320e12429a0d735d6aada0d35c6045f"
+      ]
+     }
     }
    ],
    "local": false

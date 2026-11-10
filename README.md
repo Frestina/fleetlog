@@ -6,7 +6,7 @@
 
 <p align="center"><a href="https://github.com/tcballard/omarchy-badges"><img alt="Built for Omarchy: Plugin" height="20" src="https://raw.githubusercontent.com/tcballard/omarchy-badges/75975e5b5bf75e7ede3764bcd2950046f7abfe2c/badges/v1/omarchy-plugin.svg"></a></p>
 
-<p align="center"><img alt="The fleetlog panel for a fictional fleet: dotfiles, invoice-tool and weather-widget need attention, each with what is left off on which machine and an agent button; recipe-site and homelab are all pushed; one machine was not reached. The footer has Machines, Settings, Uninstall and Ask agent" src="preview.png" width="400"></p>
+<p align="center"><img alt="The fleetlog panel for a fictional fleet, grouped by machine: laptop has a branch never pushed and a repo with no remote, desktop has commits not pushed, uncommitted changes and a stash, and homeserver's dotfiles are 2 commits behind what the others fetched. Each line has an icon for its kind and an agent button. Below are this week's projects, above a filter field and a By machine switch, and one machine was not reached. The footer has Machines, Settings, Uninstall and Ask agent" src="preview.png" width="400"></p>
 
 After a few days away from a project it is hard to remember where it
 stopped: which machine has the newest commits, what was never pushed, and

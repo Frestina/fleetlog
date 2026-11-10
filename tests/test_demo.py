@@ -42,3 +42,8 @@ class DemoTest(unittest.TestCase):
         self.assertEqual([p for p in projects if projects[p]["left_off"]],
                          ["dotfiles", "invoice-tool", "weather-widget"])
         self.assertEqual(projects["invoice-tool"]["account"], "work")
+        # homeserver last fetched on Tuesday: the README's example, and the
+        # panel's cloud icon.
+        self.assertIn({"kind": "not-fetched", "text": "homeserver: 2 commits behind origin/main"},
+                      [{"kind": line["kind"], "text": line["text"]}
+                       for line in projects["dotfiles"]["left_off"]])
