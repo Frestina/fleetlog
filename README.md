@@ -20,11 +20,17 @@ show.
 fleetlog              # the last 7 days
 fleetlog --since 2w   # or a date: --since 2026-10-01
 fleetlog status       # only where each project was left
+fleetlog latest       # the last weekly recap, from the main machine
 fleetlog --json       # exact data, for scripts and agents
 ```
 
 `git fleetlog` works too: `install.sh` also links the command as
-`git-fleetlog`, which git runs as one of its own.
+`git-fleetlog`, which git runs as one of its own. For help, use
+`fleetlog --help`: `git fleetlog --help` asks git for a man page.
+
+It exits with 0 when every machine was read, 1 when one was not reached or
+not fully read, and 2 on an error, so a script can tell a quiet week from a
+gap.
 
 It reads machines over ssh, one call per machine, and changes nothing: no
 fetch, no pull, no push. The other machines need only bash and git, and no
@@ -33,7 +39,8 @@ Omarchy. It doesn't need
 shares one list of machines with it and the other
 [Fleet](https://github.com/Frestina/fleet) tools.
 
-On Omarchy, the bar icon counts the projects that need attention:
+On Omarchy, the bar icon counts the projects that need attention (on a
+vertical bar, its tooltip does):
 
 - **Left-click:** a panel with your week, sorted by what needs doing: what
   is left off first, by machine or by project (a button, or `g`, switches),
@@ -45,6 +52,10 @@ On Omarchy, the bar icon counts the projects that need attention:
 
 The bottom of the panel opens your list of machines and the settings in your
 editor, can hand the setup to your coding agent, and uninstalls fleetlog.
+
+In the panel, `r` reads every machine again, `t` opens the full recap, `g`
+switches the grouping and `/` filters. `m`, `s` and `a` are Machines,
+Settings and Ask agent. Esc empties the filter, then closes the panel.
 
 ## What it shows
 
@@ -77,20 +88,34 @@ Left off:
 ```
 
 Projects are sorted by their newest commit, and the same repo on several
-machines is one project. A machine that couldn't be read is always listed, so
-a short recap never just means missing data.
+machines is one project, matched by its first commit, so a renamed folder or
+remote still matches. Two clones of it on one machine are listed each on
+their own, by path.
+
+A project lists up to 10 commits (`--json` has them all), without merges.
+A commit that is on several machines is shown once, under the machine whose
+reflog says it was made there. One made on github.com is shown under none.
+
+A machine that couldn't be read is always listed: under "Not reached", or
+"Not fully read" when its output stopped early. Each machine gets 90
+seconds. A folder from the settings that is missing on the machine it names
+is listed under "Folders not found". So a short recap never just means
+missing data.
 
 A clone that never fetched looks up to date to itself. fleetlog still
 fetches nothing: it compares what your machines already have, so the last
 line above comes from another machine having fetched what homeserver has
-not. `--json` says which one, and as of when.
+not. `--json` says which one, and as of when. Each machine sends the last 200
+commits of each upstream for this, as hashes only. When two machines are
+further apart than that, or a branch was rewritten, the line says the two
+differ and no more.
 
 ## Requirements
 
 - Python 3.11 or newer on the machine you run it from.
-- On the machines it reads: any Linux with `bash` and `git`, reachable with
-  `ssh <target>` using a key, without any password prompt or agent. A machine
-  that asks shows as not reached.
+- On the machines it reads: any Linux with `bash`, `git` and coreutils,
+  reachable with `ssh <target>` using a key, without any password prompt or
+  agent. A machine that asks shows as not reached.
 - For the panel: Omarchy 4.
 
 ## Install
@@ -146,7 +171,9 @@ To read a machine that is not in the list, or leave one out, see `[machines]`
 under [Settings](#settings).
 
 Your commits are the ones whose author email is in your global git config:
-`user.email` and every `[identity "<name>"] email`.
+`user.email` and every `[identity "<name>"] email`. That name is the account
+the recap shows next to each project, such as `(personal)`. For addresses
+you no longer use, see `[identity]` under [Settings](#settings).
 
 ### Or let your agent do it
 
@@ -167,6 +194,13 @@ shell, when it has none). Omarchy starts agents with approvals switched off,
 so [their guide](docs/AGENT_REPO.md) has them look freely but ask before
 committing, pushing or deleting anything.
 
+The same works from a terminal:
+
+```
+fleetlog ask-agent                                    # the setup
+fleetlog ask-agent -- <machine> <folder> [<line>...]  # one repo
+```
+
 ## Weekly recap
 
 On a machine that is always on:
@@ -177,8 +211,12 @@ fleetlog timers install main
 
 It builds the recap of the 7 days before, Fridays at 15:15 unless the
 config says otherwise, at the lowest priority, and tries machines it could
-not reach again every hour for two more days. On the machines you sit at,
-with `machine = "<its label>"` under `[main]` in the config:
+not reach again every hour for two more days. User timers stop when you log
+out unless lingering is on: `timers install main` says when it is off, and
+`loginctl enable-linger` turns it on.
+
+On the machines you sit at, with `machine = "<its label>"` under `[main]` in
+the config:
 
 ```
 fleetlog timers install viewer
@@ -186,7 +224,13 @@ fleetlog latest       # the last weekly recap, any time
 ```
 
 They show a notification once the week's recap is ready. It stays until you
-click it away, and clicking it opens the recap in a terminal.
+click it away, and clicking it opens the recap in a terminal. When the main
+machine can't be reached, a notification says so, once a day.
+
+```
+fleetlog timers status    # what is installed, and whether it matches the config
+fleetlog timers remove    # every timer install wrote
+```
 
 `[recap]` in the config changes all of that: another day and time, or `"off"`;
 only some machines to show it; a notification that goes away by itself. A
@@ -250,7 +294,16 @@ group = "machine"                   # or "project": what the panel groups by
 - That runs a read-only bash script on each machine: locally, and on the
   others over one `ssh -T -o BatchMode=yes -o ForwardAgent=no -o
   IdentityAgent=none` call, at the lowest priority. It reads what is on disk
-  and changes nothing.
+  and changes nothing: even `git status` runs with `GIT_OPTIONAL_LOCKS=0`,
+  so it doesn't write the index.
+- One ssh connection per machine per run keeps it under firewall limits such
+  as ufw's `limit` (6 connections in 30 seconds). Running it many times in a
+  row can still hit that, and the machine then shows as not reached.
+- The weekly run is a systemd user service with `Nice=19`, idle CPU and IO
+  scheduling, 300 MB of memory and 15 minutes at most. It starts and stops
+  nothing, and writes only its own state folder. Its retries run at :45 and
+  the notification's check at :50, so they keep clear of Fleet doctor's
+  reads on the hour and every 5 minutes from :02.
 - The last read is kept in `~/.cache/fleet/log/`, and the weekly recap in
   `~/.local/state/fleet/log/`.
 - Your settings are in `~/.config/fleet/log/`, and the list of machines in
@@ -268,7 +321,8 @@ omarchy restart shell
 ```
 
 The restart makes the shell load the new panel; the command updates without
-it. For a clone, `git pull` in it.
+it. For a clone, `git pull` in it. Installed timers keep working, since the
+folder keeps its path.
 
 ## Remove
 
@@ -292,7 +346,9 @@ is pointed out for you to remove.
 ./tests/run
 ```
 
-The tests need no ssh and no second machine. To work on the panel, link your
+The tests need no ssh and no second machine. The panel's tests run its
+`model.js` under node, and are skipped without it. CI runs all of them on
+every push and pull request. To work on the panel, link your
 checkout instead of adding the plugin:
 
 ```
