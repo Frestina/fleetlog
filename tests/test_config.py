@@ -58,8 +58,11 @@ projects = ["scratch"]
 repos = ["~/Projects/old"]
 [identity]
 emails = ["Old@Example.org"]
+[panel]
+group = "project"
 """)
         cfg = self.fleet.load()
+        self.assertEqual(cfg.group, "project")
         self.assertEqual(cfg.main_machine().label, "bench")
         self.assertEqual(cfg.folders_for("bench"), ("~/Code", "~/srv"))
         self.assertEqual(cfg.folders_for("crate"), ("~/Code",))
@@ -75,6 +78,10 @@ emails = ["Old@Example.org"]
                            ('[exclude]\nprojects = "a b"\n', "[exclude] projects must be a list"),
                            ("[machines]\nnas = 1\n", "[machines] nas must be an ssh target"),
                            ('[machines]\nskip = "bench"\n', "[machines] skip must be a list"),
+                           ('[panel]\ngroup = "repo"\n',
+                            '[panel] group must be "machine" or "project"'),
+                           ("[panel]\ngroup = true\n",
+                            '[panel] group must be "machine" or "project"'),
                            ('main = "bench"\n', "main must be a section")):
             with self.subTest(text=text):
                 self.fleet.config(text)

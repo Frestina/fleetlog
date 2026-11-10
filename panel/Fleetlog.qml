@@ -19,8 +19,9 @@ import "model.js" as Model
 // anything; refresh reads every machine now, once for all monitors.
 //
 // left = the panel · right = the full recap in a terminal.
-// In the panel: r refresh, t the full recap, m machines, s settings, a ask
-// agent, j/k or arrows scroll, Esc close. The footer is Fleetwatch's: Machines
+// In the panel: r refresh, t the full recap, g by machine or by project,
+// / the filter, m machines, s settings, a ask agent, j/k or arrows scroll,
+// Esc empties the filter and then closes. The footer is Fleetwatch's: Machines
 // opens the list of machines (`fleetlog machines`), Settings the config
 // (`fleetlog config`), and saving either reads every machine again.
 // Uninstall asks in a terminal what to remove (`fleetlog uninstall`). Ask
@@ -53,6 +54,21 @@ Panel {
   readonly property string glyphAgent: String.fromCodePoint(0xF06A9)
   readonly property string glyphMachines: String.fromCodePoint(0xF03EB)
   readonly property string glyphUninstall: String.fromCodePoint(0xF01B4)
+  readonly property string glyphByMachine: String.fromCodePoint(0xF0322)
+  readonly property string glyphByProject: String.fromCodePoint(0xF0CCF)
+  // In front of a left-off line, by what Model says it is about: an arrow up
+  // to push and down to pull, a cloud for what the remote has or is not
+  // there, and the commit, the stash, a branch that is gone, a question.
+  readonly property var leftGlyphs: ({
+    "push": String.fromCodePoint(0xF005D),
+    "pull": String.fromCodePoint(0xF0045),
+    "fetch": String.fromCodePoint(0xF0B7D),
+    "no-remote": String.fromCodePoint(0xF0164),
+    "commit": root.glyphCommit,
+    "stash": String.fromCodePoint(0xF120E),
+    "gone": String.fromCodePoint(0xF14CC),
+    "unknown": String.fromCodePoint(0xF0625)
+  })
 
   // The last read (parsed --json), what the panel shows of it (Model.view,
   // worded again on each open, so "Read at" turns into a day when it should),
@@ -79,6 +95,22 @@ Panel {
 
   // When the config or the hosts file was saved (Unix seconds); see fileSaved().
   property real savedAt: 0
+
+  // What is left off by machine, or by project: see Model.view. It starts as
+  // the config says ([panel] group, which the read carries). The button and g
+  // pick the other one until the shell restarts or the setting changes.
+  readonly property string groupSet: root.view ? root.view.group : "machine"
+  property var groupPicked: null
+  readonly property bool byMachine: root.groupPicked !== null ? root.groupPicked
+    : root.groupSet !== "project"
+  onGroupSetChanged: root.groupPicked = null
+  function switchGroup() { root.groupPicked = !root.byMachine }
+  // The filter's text, and the view with only what it names (Model.filter).
+  // The header, the count and the machines not read are never filtered. It
+  // is emptied when the panel closes, so a panel never opens short of
+  // something with no sign of why.
+  property string query: ""
+  readonly property var shown: root.view ? Model.filter(root.view, root.query) : null
 
   // Projects opened to show their commits, by key; kept across reads.
   property var openProjects: ({})
@@ -241,7 +273,10 @@ Panel {
   // Opening shows the last read. Only with nothing to show does it read, and
   // not again within a minute of a failure.
   onOpenedChanged: {
-    if (!root.opened) return
+    if (!root.opened) {
+      filterField.text = ""
+      return
+    }
     root.now = new Date()
     if (!root.view && !proc.running && Date.now() - root.triedAt > 60000) root.load(root.due())
   }
@@ -351,7 +386,7 @@ Panel {
     Rectangle {
       id: row
       required property var modelData
-      readonly property bool needsWork: modelData.left.length > 0
+      readonly property bool needsWork: modelData.needs
       readonly property bool expanded: !!root.openProjects[modelData.key]
 
       width: list.width
@@ -433,15 +468,33 @@ Panel {
             width: rowColumn.width
             spacing: Style.space(4)
 
-            Text {
+            // The icon and the line, so a line that wraps stays beside its
+            // icon. A line of a kind this panel does not know keeps a bullet.
+            RowLayout {
               Layout.fillWidth: true
-              leftPadding: Style.space(18)
-              textFormat: Text.PlainText
-              text: "• " + leftRow.modelData.text
-              wrapMode: Text.Wrap
-              color: root.barForeground
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
+              Layout.leftMargin: Style.space(18)
+              spacing: Style.space(6)
+
+              Text {
+                Layout.alignment: Qt.AlignTop
+                Layout.preferredWidth: Math.round(Style.font.bodySmall * 1.5)
+                horizontalAlignment: Text.AlignHCenter
+                text: root.leftGlyphs[leftRow.modelData.icon] || "•"
+                color: root.dim(0.7)
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
+
+              Text {
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignTop
+                textFormat: Text.PlainText
+                text: leftRow.modelData.text
+                wrapMode: Text.Wrap
+                color: root.barForeground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
             }
 
             PanelActionButton {
@@ -515,7 +568,10 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      onCloseRequested: root.close()
+      onCloseRequested: {
+        if (root.query !== "") filterField.text = ""
+        else root.close()
+      }
       onTabRequested: function(direction) { root.switchPanel(direction) }
       onMoveRequested: function(dx, dy) { root.scroll(dy) }
       onTextKey: function(t) {
@@ -524,6 +580,8 @@ Panel {
         else if (t === "m") root.edit("machines")
         else if (t === "s") root.edit("config")
         else if (t === "a") root.askAgent(null)
+        else if (t === "g") root.switchGroup()
+        else if (t === "/") filterField.forceActiveFocus()
       }
 
       Column {
@@ -535,7 +593,8 @@ Panel {
 
         // Everything but the list, so the list can take the height left.
         readonly property real chromeHeight: hero.implicitHeight + topRule.height
-          + bottomRule.height + footer.implicitHeight + content.spacing * 4
+          + tools.implicitHeight + bottomRule.height + footer.implicitHeight
+          + content.spacing * 5
           + (onlyHere.visible ? onlyHere.implicitHeight + content.spacing : 0)
           + (errorText.visible ? errorText.implicitHeight + content.spacing : 0)
 
@@ -622,6 +681,52 @@ Panel {
 
         PanelSeparator { id: topRule; foreground: root.barForeground }
 
+        // ---------- The filter, and what the list is grouped by ----------
+        RowLayout {
+          id: tools
+          width: parent.width
+          spacing: Style.space(8)
+
+          // While it has the keys, every letter is its text: Enter or Down
+          // gives them back to the panel and keeps the filter, Esc empties it
+          // first.
+          TextField {
+            id: filterField
+            Layout.fillWidth: true
+            foreground: root.barForeground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            verticalPadding: Style.space(4)
+            placeholderText: "Filter by project or machine (/)"
+            onTextChanged: {
+              root.query = text
+              flick.contentY = 0
+            }
+            onAccepted: keyCatcher.forceActiveFocus()
+            Keys.onPressed: function(event) {
+              if (event.key === Qt.Key_Down) {
+                keyCatcher.forceActiveFocus()
+                event.accepted = true
+              } else if (event.key === Qt.Key_Escape) {
+                if (filterField.text !== "") filterField.text = ""
+                else keyCatcher.forceActiveFocus()
+                event.accepted = true
+              }
+            }
+          }
+
+          Button {
+            iconText: root.byMachine ? root.glyphByMachine : root.glyphByProject
+            text: root.byMachine ? "By machine" : "By project"
+            tooltipText: root.byMachine ? "Group what is left off by project instead (g)"
+              : "Group what is left off by machine instead (g)"
+            foreground: root.barForeground
+            fontFamily: root.fontFamily
+            fontSize: Style.font.bodySmall
+            onClicked: root.switchGroup()
+          }
+        }
+
         Flickable {
           id: flick
           width: parent.width
@@ -661,34 +766,39 @@ Panel {
             }
 
             PanelSectionHeader {
-              visible: !!root.view && root.view.attention.length > 0
+              visible: !!root.shown && root.shown.attention.length > 0
               text: "NEEDS ATTENTION"
               foreground: root.barForeground
               fontFamily: root.fontFamily
             }
 
+            // By machine, each project's lines are under its machines, so
+            // the week lists every project with commits, without them.
             Repeater {
-              model: root.view ? root.view.attention : []
+              model: !root.shown ? [] : root.byMachine ? root.shown.machines : root.shown.attention
               delegate: projectRow
             }
 
             PanelSectionHeader {
-              visible: !!root.view && root.view.worked.length > 0
-              text: "THIS WEEK, ALL PUSHED"
+              visible: !!root.shown
+                && (root.byMachine ? root.shown.week : root.shown.worked).length > 0
+              text: root.byMachine ? "THIS WEEK" : "THIS WEEK, ALL PUSHED"
               foreground: root.barForeground
               fontFamily: root.fontFamily
             }
 
             Repeater {
-              model: root.view ? root.view.worked : []
+              model: !root.shown ? [] : root.byMachine ? root.shown.week : root.shown.worked
               delegate: projectRow
             }
 
             Text {
-              visible: !!root.view && root.view.attention.length === 0 && root.view.worked.length === 0
+              visible: !!root.shown && root.shown.attention.length === 0
+                && root.shown.worked.length === 0
               width: list.width
               textFormat: Text.PlainText
-              text: "No commits of yours in this time, and nothing left off."
+              text: root.query.trim() !== "" ? "No project or machine matches the filter."
+                : "No commits of yours in this time, and nothing left off."
               wrapMode: Text.Wrap
               color: root.dim(0.6)
               font.family: root.fontFamily
@@ -696,7 +806,7 @@ Panel {
             }
 
             Text {
-              visible: !!root.view && root.view.quiet > 0
+              visible: !!root.view && root.view.quiet > 0 && root.query.trim() === ""
               width: list.width
               topPadding: Style.space(4)
               textFormat: Text.PlainText
@@ -793,7 +903,7 @@ Panel {
           Text {
             width: parent.width
             textFormat: Text.PlainText
-            text: "Click a project for its commits · r refresh · t full recap"
+            text: "Click a row for its commits · r refresh · t full recap"
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             color: root.dim(0.45)

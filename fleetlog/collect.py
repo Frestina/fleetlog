@@ -12,7 +12,13 @@ What comes back is a machine's facts, a plain dict that json can store:
     missing (folders not there), folders_not_found (those of them named for
     this machine in [folders]), problems (repos that did not read),
     repos: path, root, email, synced, remotes, head, branches, commits,
-           made, changed, untracked, stashes, common (the git common dir)
+           made, changed, untracked, stashes, common (the git common dir),
+           history (hash to parents, the last commits of each upstream)
+
+A branch with an upstream also says where this clone has it: upstream_tip
+and upstream_time, and which branch of which remote it is, remote_branch and
+remote (the last two names of the remote's URL, lower case). With history,
+that lets the recap tell what one machine has fetched and another has not.
 
 A machine that never answered is reached=False with the ssh error. One that
 answered but whose output stops before the end record is complete=False:
@@ -138,15 +144,22 @@ def parse(label: str, out: bytes) -> dict:
                     "synced": _int(f[3]), "remotes": _int(f[4]) or 0, "head": None,
                     "branches": [], "commits": [], "made": [], "changed": None,
                     "untracked": None, "stashes": 0,
-                    "common": US.join(f[5:]) or None}
+                    "common": US.join(f[5:]) or None, "history": {}}
             facts["repos"].append(repo)
         elif repo is None:
             continue
         elif kind == "H":
             repo["head"] = f[0] if f and f[0] else None
         elif kind == "B" and len(f) >= 4:
+            more = f[4:] + [""] * max(0, 8 - len(f))
             repo["branches"].append({"name": f[0], "upstream": f[1] or None,
-                                     "track": f[2] or None, "unpushed": _int(f[3])})
+                                     "track": f[2] or None, "unpushed": _int(f[3]),
+                                     "upstream_tip": more[0] or None,
+                                     "upstream_time": _int(more[1]),
+                                     "remote_branch": more[2] or None,
+                                     "remote": US.join(more[3:]).lower() or None})
+        elif kind == "U" and f and f[0]:
+            repo["history"][f[0]] = f[1].split() if len(f) > 1 else []
         elif kind == "C" and len(f) >= 4:
             repo["commits"].append({"hash": f[0], "email": f[1], "time": _int(f[2]) or 0,
                                     "subject": US.join(f[3:])})

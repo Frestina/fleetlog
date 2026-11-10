@@ -14,7 +14,14 @@
 #                                        Worktrees share a common dir, and with
 #                                        it their branches and stashes
 #   H  branch                            what HEAD is on, empty when detached
-#   B  branch, upstream, track, unpushed one per local branch
+#   B  branch, upstream, track, unpushed, upstream's tip, its commit time,
+#      its branch on the remote, the remote
+#                                        one per local branch. The remote is
+#                                        the last two names of its URL
+#   U  hash, parents                     the last 200 commits of an upstream,
+#                                        after the first branch that tracks it:
+#                                        what this clone has fetched, so the
+#                                        recap can tell what another has not
 #   C  hash, author email, time, subject a commit in the window
 #   L  hash, reflog subject              HEAD's reflog, to see where a commit
 #                                        was made
@@ -33,6 +40,7 @@ if command -v ionice >/dev/null; then
 fi
 
 US=$'\x1f'
+DEPTH=200 # commits of an upstream's history sent
 # As dates, since git reads a small @<unix time> as something else.
 since=$(date -u -d "@$1" '+%Y-%m-%d %H:%M:%S +0000')
 until=$(date -u -d "@$2" '+%Y-%m-%d %H:%M:%S +0000')
@@ -50,8 +58,23 @@ synced() {
     sort -n | tail -n 1 | cut -d . -f 1
 }
 
+# The last two names of a remote's URL, owner/repo on a forge: the same on
+# every machine whatever scheme or ssh alias each uses, and without the host,
+# user or token a URL may hold.
+remote_key() {
+  local url=${1%/} name
+  url=${url%.git}
+  url=${url%/}
+  [[ -n $url ]] || return
+  name=${url##*[/:]}
+  url=${url%"$name"}
+  url=${url%[/:]}
+  printf '%s\n' "${url##*[/:@]}/$name"
+}
+
 repo() {
   local path=$1 root email common remotes branch up track n line
+  local upref remote uptip uptime there key seen=" "
   local g=(git -C "$path" -c core.fsmonitor=false)
 
   if ! common=$("${g[@]}" rev-parse --path-format=absolute --git-common-dir 2>&1); then
@@ -64,11 +87,25 @@ repo() {
   rec R "$path" "$root" "$email" "$(synced "$common")" "$remotes" "$common"
   rec H "$("${g[@]}" symbolic-ref -q --short HEAD 2>/dev/null)"
 
-  while IFS=$US read -r branch up track; do
+  while IFS=$US read -r branch up track upref; do
     n=$("${g[@]}" rev-list --count "refs/heads/$branch" --not --remotes 2>/dev/null)
-    rec B "$branch" "$up" "$track" "$n"
+    remote='' uptip='' uptime='' there='' key=''
+    if [[ $upref == refs/remotes/* ]]; then
+      remote=$("${g[@]}" config --get "branch.$branch.remote" 2>/dev/null)
+      read -r uptip uptime < <("${g[@]}" log -1 --format='%H %ct' "$upref" -- 2>/dev/null)
+      if [[ -n $remote && $upref == "refs/remotes/$remote/"* ]]; then
+        there=${upref#"refs/remotes/$remote/"}
+        key=$(remote_key "$("${g[@]}" config --get "remote.$remote.url" 2>/dev/null)")
+      fi
+    fi
+    rec B "$branch" "$up" "$track" "$n" "$uptip" "$uptime" "$there" "$key"
+    if [[ -n $uptip && $seen != *" $uptip "* ]]; then
+      seen+="$uptip "
+      "${g[@]}" log -n "$DEPTH" --format="U%x1f%H%x1f%P" "$uptip" -- 2>/dev/null
+    fi
   done < <("${g[@]}" for-each-ref refs/heads \
-    --format="%(refname:short)%1f%(upstream:short)%1f%(upstream:track,nobracket)" 2>/dev/null)
+    --format="%(refname:short)%1f%(upstream:short)%1f%(upstream:track,nobracket)%1f%(upstream)" \
+    2>/dev/null)
 
   "${g[@]}" log HEAD --branches --remotes --tags --no-merges \
     --since="$since" --until="$until" \

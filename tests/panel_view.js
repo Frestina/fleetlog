@@ -1,7 +1,7 @@
 // Runs panel/model.js under node as the panel does in the shell: fleetlog's
 // --json on stdin, {view} or {error} on stdout.
 //
-//   node tests/panel_view.js <now, ms since the epoch>
+//   node tests/panel_view.js <now, ms since the epoch> [<filter text>]
 //
 // The shell loads model.js as a QML library, whose first line node cannot
 // parse, so it is dropped here and the rest runs in a context of its own.
@@ -19,6 +19,7 @@ let out
 try {
   const data = model.parse(fs.readFileSync(0, "utf8"))
   out = { view: model.view(data, new Date(Number(process.argv[2]))) }
+  if (process.argv.length > 3) out.view = model.filter(out.view, process.argv[3])
 } catch (e) {
   out = { error: e.message }
 }

@@ -20,8 +20,9 @@ machine for a period (a week by default) and prints them as a short recap
 grouped by project.
 
 Each project in the recap ends with where it was left: commits not pushed,
-branches never pushed, uncommitted changes and stashes, on each machine. That
-is the part a GitHub activity page cannot show.
+branches never pushed, uncommitted changes and stashes, on each machine, and
+commits one machine has that another has not fetched. That is the part a
+GitHub activity page cannot show.
 
 Every Friday (or another day and time, or never, as the config says) the
 recap is built on the main machine and shown as a notification on the
@@ -110,13 +111,20 @@ Left off: all pushed and committed on laptop and desktop.
 ### dotfiles (personal)
 
 Left off:
-- desktop: 6 commits on main not pushed
+- desktop: 6 commits ahead of origin/main
 - desktop: uncommitted changes (9 changed files)
+- homeserver: 2 commits behind origin/main
 
 ## Not reached
 
 - pi: ssh: connect to host pi port 22: No route to host, tried 4 times since Fri 15:15
 ```
+
+The lines say where a branch is as git does, ahead of or behind its
+upstream, and name the branch only when it is not its upstream's namesake
+(`fix is 1 commit ahead of origin/main`). "Ahead" is said when commits are on
+no remote; a branch with no upstream "was never pushed", and one whose
+upstream is gone has its commits "on no remote".
 
 A project lists at most 10 commits; `--json` has all of them. "Also left off"
 holds projects with no commits in the window but something left on a
@@ -151,11 +159,39 @@ sorted by what needs doing.
 - **What it shows**, top to bottom:
   - Machines not reached or not fully read, first, as in the recap. A short
     panel never just means missing data.
-  - **Needs attention**: every project with something left off, with its
-    left-off lines and its commit count in the window.
-  - **This week**: projects with commits and nothing left off, newest first.
+  - **Needs attention**: everything left off, grouped by machine or by
+    project. It starts as `[panel] group` in the config says, by machine
+    unless that says otherwise. A button above the list, and `g`, switch
+    between the two until the shell restarts or the setting changes.
+    - By machine, for "what is there to do on this one": a row for each
+      machine with something left off, in the order the machines are listed.
+      Its lines start with the project instead of the machine, and its count
+      is the commits made there in the window, which a click shows.
+    - By project: every project with something left off, with its left-off
+      lines and its commit count in the window.
+    - Each line starts with an icon for what it is about, so a long list can
+      be scanned: an arrow up for a branch that is ahead, an arrow down
+      for one behind what it has fetched, a cloud for one behind what it
+      has not fetched yet and for a repo with no remote, the commit for
+      uncommitted changes, a box for
+      stashes. A line of a kind the panel does not know keeps a bullet. The
+      Markdown recap has no icons: it stays plain text.
+  - **This week**: by project, the projects with commits and nothing left
+    off, newest first. By machine, every project with commits, since the
+    left-off lines are under the machines: a project with something left
+    off is marked, and its lines are not repeated.
   - A click on a project shows its commits, newest first, and the machines
     it is on.
+  - **The filter**: a field above the list, which `/` puts the keys in. It
+    keeps the lines and the projects that every word typed names, by project
+    or by machine, in any case: `desk` keeps what is on desktop, `dot` the
+    dotfiles, `desk dot` the dotfiles on desktop. A project with nothing
+    left off stays when its name or a machine it is on matches. Enter or the
+    down arrow gives the keys back to the panel and keeps the filter; Esc
+    empties it, and closes the panel when it is empty. The header, the count
+    on the icon and the machines not read are never filtered, and the filter
+    is emptied when the panel closes, so a short panel still never just
+    means missing data.
   - A button opens the full Markdown recap of the same read in a terminal
     (`less`), from the cache.
   - When the list of machines holds only this one, a line says so, as in
@@ -167,10 +203,10 @@ sorted by what needs doing.
     **Uninstall** runs `fleetlog uninstall` in a floating terminal, since
     it asks first. **Ask agent** (`a`) is **Set up with agent**, and
     outlined, while only this machine is listed: see
-    [Your agent](#your-agent). Under them, the keys: a click on a project,
+    [Your agent](#your-agent). Under them, the keys: a click on a row,
     `r` refresh, `t` the full recap.
   - An agent button on the first left-off line of each machine in a
-    project: see [Your agent](#your-agent).
+    project, or of each project on a machine: see [Your agent](#your-agent).
 - **Its parts**: `manifest.json` and `panel/` make this repo an Omarchy shell
   plugin, `io.github.frestina.fleetlog`: one bar widget with its own panel,
   as Omarchy's audio and Bluetooth icons are. The panel runs the plugin's own
@@ -244,6 +280,32 @@ The panel can hand what it shows to the user's default coding agent
   commit, so a renamed folder or remote still matches. Two clones of it on
   one machine are left off each on their own, named by path. Worktrees of
   one clone share its branches and stashes, so those count once.
+- **What a machine has not fetched**: a clone knows its remote only as of
+  its last fetch, so one that looks up to date may not be. fleetlog reads
+  every machine, so it compares them instead of asking the remote. Where the
+  checked-out branch's upstream on one machine is in the past of the same
+  branch of the same remote on another, the branch is behind by those
+  commits too, and its left-off line says so like any other "behind": `2
+  commits behind origin/main`, one line, with what it is behind its own
+  upstream added in. It says no more, so it stays short in the panel.
+  `--json` also says how many of them are not fetched, names the machine
+  that has them and when that machine last heard from its remotes.
+  - Each machine sends where it has each upstream, and that upstream's last
+    200 commits, as hashes with their parents. That is enough to tell whether
+    one machine's commit is in another's past and to count what lies between,
+    merges included. When a commit between them has parents nobody sent, the
+    line says "at least".
+  - The same remote is one whose URL ends in the same two names (the owner
+    and the repo on a forge), in any case. The host is not compared: it is
+    often an ssh alias that differs between machines. Only those two names
+    leave the machine, never the URL, which may hold a token. A fork and the
+    repo it came from are different remotes, so they are never compared.
+  - When neither commit is in the other's past as far as the histories go
+    (more than 200 commits apart, or a branch that was rewritten), the line
+    says they differ, names the other machine and says that it cannot tell
+    more, on the clone whose upstream is the older commit.
+  - As with "behind", only the checked-out branch says it. Worktrees of one
+    clone share their upstreams, so they never differ.
 - **Which commits are the author's**: author email matches one of the
   addresses in the git-whoami identity config (`[identity "<name>"] email =`)
   or `user.email`. The identity's name is the account shown in the recap. A
@@ -286,6 +348,9 @@ repos = ["~/Projects/scratch"]    # that repo, and every repo under it
 
 [identity]
 emails = ["old-address@example.org"]
+
+[panel]
+group = "machine"                 # or "project": what the panel groups by
 ```
 
 A value of the wrong kind (text where a list goes, or the other way round)
@@ -433,9 +498,13 @@ it. The weekly run must not be noticed there:
 
 1. **It never changes a repo.** No fetch, pull, push, gc or checkout, and
    `GIT_OPTIONAL_LOCKS=0`, so `git status` never writes the index. It reads
-   what is already on disk, so "not pushed" means "not on a remote as far as
-   that machine last heard", and "behind" says when that was. The agent the
-   user starts from the panel may change one, on the user's yes.
+   what is already on disk, so "ahead" means "not on a remote as far as
+   that machine last heard", and "behind" its own upstream says when that
+   was. What one
+   machine has not fetched is told from what another already has on disk,
+   never by asking the remote: that would be a network call from every
+   machine, with an ssh agent that may prompt. The agent the user starts
+   from the panel may change one, on the user's yes.
 2. **It never hides a gap.** A machine that timed out or a repo that could not
    be read is shown as such. A short recap never just means missing data, and
    "all pushed and committed" names the machines it is true for.

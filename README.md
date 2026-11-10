@@ -12,8 +12,9 @@ After a few days away from a project it is hard to remember where it
 stopped: which machine has the newest commits, what was never pushed, and
 what you finished that week at all. fleetlog reads every machine you list
 and ends each project with where you left it: commits not pushed, branches
-never pushed, uncommitted changes and stashes. That is the part a GitHub
-activity page can't show.
+never pushed, uncommitted changes and stashes, and commits one machine has
+that another never fetched. That is the part a GitHub activity page can't
+show.
 
 ```
 fleetlog              # the last 7 days
@@ -34,10 +35,12 @@ shares one list of machines with it and the other
 
 On Omarchy, the bar icon counts the projects that need attention:
 
-- **Left-click:** a panel with your week, sorted by what needs doing:
-  projects with work left off first, then the ones all pushed. Click a
-  project for its commits, or the agent button next to what is left off to
-  [work on it with your coding agent](#ask-your-agent).
+- **Left-click:** a panel with your week, sorted by what needs doing: what
+  is left off first, by machine or by project (a button, or `g`, switches),
+  then the week's projects. Each line has an icon for what it takes: a push,
+  a fetch, a commit. Type `/` and a project's or a machine's name to see only
+  that. Click a row for its commits, or the agent button next to what is left
+  off to [work on it with your coding agent](#ask-your-agent).
 - **Right-click:** the full recap in a terminal.
 
 The bottom of the panel opens your list of machines and the settings in your
@@ -64,8 +67,9 @@ Left off:
 ### dotfiles (personal)
 
 Left off:
-- desktop: 6 commits on main not pushed
+- desktop: 6 commits ahead of origin/main
 - desktop: uncommitted changes (9 changed files)
+- homeserver: 2 commits behind origin/main
 
 ## Not reached
 
@@ -75,6 +79,11 @@ Left off:
 Projects are sorted by their newest commit, and the same repo on several
 machines is one project. A machine that couldn't be read is always listed, so
 a short recap never just means missing data.
+
+A clone that never fetched looks up to date to itself. fleetlog still
+fetches nothing: it compares what your machines already have, so the last
+line above comes from another machine having fetched what homeserver has
+not. `--json` says which one, and as of when.
 
 ## Requirements
 
@@ -228,6 +237,9 @@ repos = ["~/Projects/scratch"]      # that repo, and every repo under it
 
 [identity]
 emails = ["old-address@example.org"]  # more commits that are yours
+
+[panel]
+group = "machine"                   # or "project": what the panel groups by
 ```
 
 ## What it runs and stores

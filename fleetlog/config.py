@@ -41,6 +41,9 @@ The config, ~/.config/fleet/log/config.toml, is optional TOML:
     [identity]
     emails = ["me@example.org"]
 
+    [panel]
+    group = "project"
+
 `fleetlog config` writes TEMPLATE there when there is none, and opens it.
 """
 
@@ -57,6 +60,7 @@ FOLDERS = ("~/Projects", "~/dotfiles")
 DAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 DAY_NAMES = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
 WHEN = (4, 15, 15)  # the weekly recap's default: Friday 15:15, as weekday, hour, minute
+GROUPS = ("machine", "project")  # what the panel groups left-off work by; the first by default
 # Fleet doctor's runs, on the hour and every 5 minutes from :02, ssh into the
 # machines too: the weekly run keeps off them.
 DOCTOR = frozenset({0, *range(2, 60, 5)})
@@ -108,6 +112,12 @@ TEMPLATE = """\
 # Author emails whose commits count as yours, beyond those in your git
 # config (user.email and git-whoami's [identity "<name>"] sections).
 # emails = ["old-address@example.org"]
+
+[panel]
+# What the panel groups left-off work by when it starts: "machine", what is
+# there to do on each one, or "project". The button above the list, and g,
+# switch for as long as the shell runs.
+# group = "machine"
 """
 
 # The header every Fleet tool writes into a new hosts file (HOSTS.md).
@@ -153,6 +163,7 @@ class Config:
     notify: tuple[str, ...] | None = None  # None: every machine with the timer
     stays: bool = True
     here: str = ""  # this machine's label, even when skip leaves it out of machines
+    group: str = GROUPS[0]  # what the panel groups left-off work by
 
     def notifies(self, label: str) -> bool:
         """Whether that machine shows the weekly recap."""
@@ -253,6 +264,7 @@ def load() -> Config:
         notify=_notify(recap.get("notify", "all"), labels),
         stays=_stays(recap.get("stays", True)),
         here=here,
+        group=_group(_section(data, "panel").get("group", GROUPS[0])),
     )
 
 
@@ -308,6 +320,12 @@ def _notify(value: object, labels: set[str]) -> tuple[str, ...] | None:
                           f"which {'is' if len(unknown) == 1 else 'are'} not one of the "
                           f"machines ({', '.join(sorted(labels))})")
     return tuple(value)
+
+
+def _group(value: object) -> str:
+    if value not in GROUPS:
+        raise ConfigError(f'{config_path()}: [panel] group must be "machine" or "project"')
+    return value
 
 
 def _stays(value: object) -> bool:

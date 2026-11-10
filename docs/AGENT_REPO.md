@@ -2,7 +2,8 @@
 
 The user clicked the agent button next to a project in fleetlog's panel,
 which lists projects with work left off: commits not pushed, branches never
-pushed, uncommitted changes, stashes. You were started in that repo's folder,
+pushed, uncommitted changes, stashes, commits another machine has that this
+one never fetched. You were started in that repo's folder,
 on the machine where the work was left. Work through it with the user: you
 look and explain, they decide.
 
@@ -29,7 +30,7 @@ regardless:
 
 1. Check what is left off now: the panel read it up to an hour ago. `git
    status`, `git branch -vv`, `git stash list`, and `git log @{u}..` for
-   commits not pushed. Several clones of the project on this machine are
+   commits it is ahead by. Several clones of the project on this machine are
    named by path in the lines; look at each.
 2. Sum it up in a few lines: for each thing left off, what it is, and whether
    it looks finished, deliberately local (an experiment, a repo with no remote
@@ -49,10 +50,22 @@ regardless:
   push; if not, it can be excluded as above.
 - **branch was never pushed**: a local branch with no upstream. Push it with
   `-u` if it is worth keeping; delete it if it is merged or abandoned.
-- **commits not pushed**: the branch is ahead of its upstream. Look at what
-  they are; usually they just need a push.
-- **behind**: the upstream has commits this clone lacks, as of the last
-  fetch. Fetch to see if it is still so; `pull --ff-only` when the user wants.
+- **commits ahead of an upstream**: the branch has commits that are on no
+  remote. Look at what they are; usually they just need a push.
+- **commits on a branch on no remote**: the same, but the branch's upstream
+  is gone. Check whether they were merged another way, a squash say, before
+  suggesting to push or delete.
+- **commits behind an upstream**: the upstream has commits this branch
+  lacks. With "as of" a day, this clone fetched them then and only needs a
+  `pull --ff-only`. Without one, another of the user's machines has fetched
+  commits this clone has not: fleetlog compared the machines and asked no
+  remote. Nothing is lost either way, this clone is only out of date: fetch
+  to see the commits, and `pull --ff-only` when the user wants.
+- **is not where another machine has it**: the two machines have different
+  commits for the same upstream, and fleetlog could not tell how they
+  relate: more than 200 commits apart, or the branch was rewritten with a
+  force-push. Fetch and look. If it was rewritten, the local branch has
+  diverged from it; explain that, and reset or rebase only on a yes.
 - **upstream is gone**: the remote branch was deleted, often after a merge.
   Check the branch is merged before suggesting to delete it.
 - **uncommitted changes**: show what changed (`git status`, `git diff

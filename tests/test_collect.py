@@ -59,6 +59,42 @@ class CollectTest(FleetTest):
         self.assertIn(second, r["made"])
         self.assertEqual((r["changed"], r["untracked"], r["stashes"]), (1, 1, 1))
 
+    def test_where_a_clone_has_its_upstream(self):
+        repo = self.fleet.repo("bench", "Projects/tool")
+        first = self.fleet.commit(repo, "First")
+        pushed = self.fleet.commit(repo, "Pushed")
+        self.fleet.remote(repo)
+        self.fleet.commit(repo, "Not pushed")
+        self.fleet.git(repo, "branch", "idea")
+        [r] = collect.collect_all(self.fleet.load(), *ALL)[1]["repos"]
+        main, idea = (next(b for b in r["branches"] if b["name"] == n) for n in ("main", "idea"))
+        self.assertEqual((main["upstream_tip"], main["remote_branch"], main["remote"]),
+                         (pushed, "main", "remotes/bench-tool"))
+        self.assertEqual(main["upstream_time"],
+                         int(self.fleet.git(repo, "log", "-1", "--format=%ct", "origin/main")))
+        self.assertEqual([idea[k] for k in ("upstream_tip", "upstream_time", "remote_branch",
+                                            "remote")], [None] * 4)
+        # What it has fetched, and nothing it only has here.
+        self.assertEqual(r["history"], {pushed: [first], first: []})
+
+    def test_a_remote_is_the_last_two_names_of_its_url(self):
+        for n, (url, name) in enumerate([
+            ("git@forge-alias:Owner/Tool.git", "owner/tool"),
+            ("https://someone:secret@example.org/Owner/Tool", "owner/tool"),
+            ("ssh://git@example.org:2222/owner/tool.git/", "owner/tool"),
+            ("https://secret@example.org/tool.git", "example.org/tool"),
+            ("/srv/git/tool.git", "git/tool"),
+        ]):
+            repo = self.fleet.repo("anvil", f"Projects/tool{n}")
+            self.fleet.commit(repo, "First")
+            self.fleet.remote(repo)
+            self.fleet.git(repo, "remote", "set-url", "origin", url)
+            with self.subTest(url):
+                facts = collect.collect_all(self.fleet.load(), *ALL)[0]
+                r = next(r for r in facts["repos"] if r["path"] == str(repo))
+                self.assertEqual(r["branches"][0]["remote"], name)
+                self.assertNotIn("secret", repr(facts))
+
     def test_a_cloned_commit_was_not_made_there(self):
         repo = self.fleet.repo("anvil", "Projects/tool")
         made = self.fleet.commit(repo, "First")

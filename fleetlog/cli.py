@@ -177,7 +177,7 @@ def show(cfg: config.Config, facts: list[dict], start: int, until: int, as_json:
                                cfg.exclude_projects)
         notices = timers.drift(cfg)
         if as_json:
-            text = recap.as_json(facts, projects, start, until, status, notices)
+            text = recap.as_json(facts, projects, start, until, status, notices, cfg.group)
         else:
             text = recap.markdown(facts, projects, start, until, status)
     except recap.UNREADABLE as e:
