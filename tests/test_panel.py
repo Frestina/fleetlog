@@ -260,6 +260,43 @@ class PanelTest(FleetTest):
         anvil_line = self.view("anvil")["attention"][0]["left"]
         self.assertEqual([line["ask"]["machine"] for line in anvil_line], ["anvil"])
 
+    def test_a_row_with_several_agent_buttons_gets_one_for_all_of_them(self):
+        there = self.filtered()
+        here = self.fleet.home("anvil") / "Projects" / "tool"
+        notes = notes_path(self, "bench")
+        view = self.view()
+        self.assertEqual(view["here"], "anvil")
+        rows = {p["name"]: p for p in view["attention"]}
+        # tool, on two machines: one agent here, reaching the other.
+        tool = rows["tool"]
+        self.assertEqual(tool["askAll"]["repos"], [
+            {"machine": "anvil", "path": str(here), "project": "tool",
+             "lines": ["anvil: uncommitted changes (1 untracked file)"]},
+            {"machine": "bench", "path": str(there), "project": "tool",
+             "lines": ["bench: 1 commit ahead of origin/main",
+                       "bench: uncommitted changes (1 untracked file)"]}])
+        self.assertEqual(tool["askAll"]["text"],
+                         "Work on all of it with one agent, here on anvil, reaching bench "
+                         "over ssh")
+        # notes, on one machine, has only its line's button.
+        self.assertIsNone(rows["notes"]["askAll"])
+
+        machines = {m["name"]: m for m in view["machines"]}
+        self.assertIsNone(machines["anvil"]["askAll"])
+        bench = machines["bench"]["askAll"]
+        self.assertEqual(sorted((r["project"], r["path"]) for r in bench["repos"]),
+                         [("notes", notes), ("tool", str(there))])
+        self.assertEqual(bench["text"], "Work on all of it with one agent, on bench")
+        self.assertTrue(all(p["askAll"] is None for p in view["week"] + view["worked"]))
+
+        # A filter leaves the button only where several buttons are left.
+        view = self.view("tool")
+        self.assertIsNotNone(view["attention"][0]["askAll"])
+        self.assertTrue(all(m["askAll"] is None for m in view["machines"]))
+        view = self.view("bench")
+        self.assertTrue(all(p["askAll"] is None for p in view["attention"]))
+        self.assertEqual(len(view["machines"][0]["askAll"]["repos"]), 2)
+
     def test_the_grouping_it_starts_with_is_the_configs(self):
         self.assertEqual(self.view()["group"], "machine")
         self.fleet.config('[panel]\ngroup = "project"\n')

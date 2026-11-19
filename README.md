@@ -197,11 +197,18 @@ shell, when it has none). Omarchy starts agents with approvals switched off,
 so [their guide](docs/AGENT_REPO.md) has them look freely but ask before
 committing, pushing or deleting anything.
 
+A row with more than one of those buttons has one of its own, to work
+through all of it with one agent. By machine, it starts on that machine, in
+the folder that holds its repos. By project, it starts on the machine you
+are at, in the project's clone there if it has one, and reaches the other
+machines over your own ssh.
+
 The same works from a terminal:
 
 ```
 fleetlog ask-agent                                    # the setup
 fleetlog ask-agent -- <machine> <folder> [<line>...]  # one repo
+fleetlog ask-agent --repos '<json>'                   # several, as the rows do
 ```
 
 ## Weekly recap

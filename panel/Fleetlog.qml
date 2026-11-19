@@ -28,7 +28,8 @@ import "model.js" as Model
 // agent starts the default coding agent on the setup, as "Set up with agent"
 // while only this machine is listed; the agent button by a project's left-off
 // lines starts it in that repo, on the machine they are on (`fleetlog
-// ask-agent`).
+// ask-agent`), and the one on a row with several of those starts one agent
+// on all of them (`fleetlog ask-agent --repos`).
 Panel {
   id: root
   moduleName: "io.github.frestina.fleetlog"
@@ -234,6 +235,13 @@ Panel {
     root.close()
     Quickshell.execDetached([root.command, "ask-agent"].concat(
       ask ? ["--", ask.machine, ask.path].concat(ask.lines) : []))
+  }
+
+  // One agent on every repo a row's agent buttons name (Model.together).
+  // Their machines, folders and lines go as one JSON argument, not a shell.
+  function askAgentAll(ask) {
+    root.close()
+    Quickshell.execDetached([root.command, "ask-agent", "--repos", JSON.stringify(ask.repos)])
   }
 
   // Every monitor's icon sees the save, at the same moment; reading since
@@ -455,6 +463,16 @@ Panel {
             color: root.dim(0.45)
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
+          }
+
+          // With more than one agent button in the row, one for all of them.
+          PanelActionButton {
+            visible: !!row.modelData.askAll
+            iconText: root.glyphAgent
+            tooltipText: row.modelData.askAll ? row.modelData.askAll.text : ""
+            foreground: root.barForeground
+            fontFamily: root.fontFamily
+            onClicked: root.askAgentAll(row.modelData.askAll)
           }
         }
 

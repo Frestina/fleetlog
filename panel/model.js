@@ -24,9 +24,10 @@
 //     group      "machine" or "project": what the config has the panel group
 //                left-off work by when it starts ([panel] group)
 //     onlyThisMachine  no machine listed yet but the one the panel runs on
+//     here       the label of the machine the panel runs on, or ""
 //   }
 //   project: {key, name, account, count, countText, needs, on: [machine],
-//             left: [{text, icon, ask, project, machine, group}],
+//             left: [{text, icon, ask, project, machine, group}], askAll,
 //             commits: [line], more, machines: [line]}
 //   needs: something is left off, whether or not left lists it
 //   group: what ask is on the first line of its machine and project, on
@@ -40,6 +41,10 @@
 //         kind of line this version does not know
 //   ask: on the first left-off line of each machine, what its agent button
 //        passes to `fleetlog ask-agent`: {machine, path, lines: [text]}
+//   askAll: on a row whose lines have more than one agent button, what the
+//        row's own button passes to `fleetlog ask-agent --repos`, to work on
+//        all of them with one agent: {repos: [{machine, path, project,
+//        lines}], text}, text saying where it starts; else null
 //
 // Text from other machines (subjects, paths, branch names, errors) is
 // stripped of control characters here, and the panel shows it as plain text.
@@ -176,6 +181,33 @@ function buttons(lines) {
   })
 }
 
+// One agent for every agent button in the lines, when there is more than
+// one: the repos they name, and where the command starts it. All on one
+// machine, it starts there; on several, on this machine (here).
+function together(lines, here) {
+  var groups = [], repos = []
+  lines.forEach(function(line) {
+    if (line.group === null || groups.indexOf(line.group) >= 0) return
+    groups.push(line.group)
+    repos.push({ machine: line.group.machine, path: line.group.path,
+                 project: line.project, lines: line.group.lines })
+  })
+  if (repos.length < 2) return null
+  var machines = []
+  repos.forEach(function(r) {
+    var label = clean(r.machine)
+    if (machines.indexOf(label) < 0) machines.push(label)
+  })
+  var others = machines.filter(function(m) { return m !== here })
+  return {
+    repos: repos,
+    text: machines.length === 1
+      ? "Work on all of it with one agent, on " + machines[0]
+      : "Work on all of it with one agent, here" + (here ? " on " + here : "")
+        + ", reaching " + list(others) + " over ssh",
+  }
+}
+
 // The commits a machine's row lists when it is opened, and how many more.
 function listed(row, made) {
   return Object.assign({}, row, {
@@ -185,7 +217,8 @@ function listed(row, made) {
   })
 }
 
-function project(p) {
+function project(p, here) {
+  var left = leftOff(p)
   var commits = p.commits || []
   var shown = commits.slice(0, COMMITS).map(function(c) {
     var on = (c.made_on || []).map(clean).join("+")
@@ -202,7 +235,8 @@ function project(p) {
     countText: commits.length ? n(commits.length, "commit") : "no commits",
     needs: (p.left_off || []).length > 0,
     on: Object.keys(p.paths || {}).map(clean),
-    left: leftOff(p),
+    left: left,
+    askAll: together(left, here),
     commits: shown,
     more: commits.length - shown.length,
     machines: machines,
@@ -224,7 +258,7 @@ function named(project, machine, text) {
 // project instead of the machine, with the agent button on each project's
 // first, and its commits are the ones made there, newest first (made, each
 // with its project, so they can be filtered).
-function byMachine(data) {
+function byMachine(data, here) {
   var rows = {}, order = []
   function row(machine) {
     var id = "machine " + String(machine)
@@ -264,6 +298,7 @@ function byMachine(data) {
         needs: true,
         on: [r.name],
         left: r.left,
+        askAll: together(r.left, here),
         machines: [],
       }, r.made)
     })
@@ -291,7 +326,7 @@ function filter(v, text) {
     rows.forEach(function(r) {
       var left = buttons(r.left.filter(function(l) { return hit(l.project, [l.machine]) }))
       if (!left.length) return
-      var row = Object.assign({}, r, { left: left })
+      var row = Object.assign({}, r, { left: left, askAll: together(left, v.here) })
       out.push(r.made ? listed(row, r.made.filter(function(c) {
         return hit(c.project, r.on) })) : row)
     })
@@ -311,16 +346,19 @@ function view(data, now) {
   data.machines.forEach(function(m) { (m.reached ? read : missed).push(clean(m.label)) })
   var readLine = read.length ? "Read from " + list(read) + "." : "No machine could be read."
   if (missed.length) readLine += " Not reached: " + list(missed) + "."
+  var local = data.machines.filter(function(m) { return m.local === true })[0]
+  var here = local ? clean(local.label) : ""
 
   // The command lists projects newest commit first, then by name.
   var attention = [], worked = [], week = [], quiet = 0
   data.projects.forEach(function(p) {
-    if ((p.left_off || []).length) attention.push(project(p))
-    else if ((p.commits || []).length) worked.push(project(p))
+    if ((p.left_off || []).length) attention.push(project(p, here))
+    else if ((p.commits || []).length) worked.push(project(p, here))
     else quiet++
     if ((p.commits || []).length) {
-      var row = project(p)
+      var row = project(p, here)
       row.left = []
+      row.askAll = null
       week.push(row)
     }
   })
@@ -332,12 +370,13 @@ function view(data, now) {
     gaps: gaps(data),
     attention: attention,
     worked: worked,
-    machines: byMachine(data),
+    machines: byMachine(data, here),
     week: week,
     quiet: quiet,
     attentionCount: attention.length,
     group: data.panel && data.panel.group === "project" ? "project" : "machine",
     onlyThisMachine: data.machines.length > 0
       && data.machines.every(function(m) { return m.local === true }),
+    here: here,
   }
 }

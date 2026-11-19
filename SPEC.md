@@ -64,6 +64,9 @@ Fleetwatch, and reads the list of machines every
 - `fleetlog ask-agent [-- <machine> <folder> [<left-off line>...]]`:
   starts the user's coding agent, on the setup or in one repo. What the
   panel's agent buttons run; see [Your agent](#your-agent).
+- `fleetlog ask-agent --repos <json>`: one agent on several repos, given as
+  a JSON list of `{machine, path, project, lines}`. What the agent button on
+  a machine or a project runs.
 - `--json` on any of these: the same facts, exact, for scripts and agents.
 - `fleetlog --reuse-from <unix time>`: the last 7 days from the last read
   if it started at or after that time, else from a new read that is kept for
@@ -206,7 +209,8 @@ sorted by what needs doing.
     [Your agent](#your-agent). Under them, the keys: a click on a row,
     `r` refresh, `t` the full recap.
   - An agent button on the first left-off line of each machine in a
-    project, or of each project on a machine: see [Your agent](#your-agent).
+    project, or of each project on a machine, and one on the row itself
+    when it has more than one of those: see [Your agent](#your-agent).
 - **Its parts**: `manifest.json` and `panel/` make this repo an Omarchy shell
   plugin, `io.github.frestina.fleetlog`: one bar widget with its own panel,
   as Omarchy's audio and Bluetooth icons are. The panel runs the plugin's own
@@ -238,10 +242,29 @@ The panel can hand what it shows to the user's default coding agent
   the folder, where the work was left. A machine with no agent picked, or
   no Omarchy, gets a shell in the folder instead. The folder is the one with
   a left-off line naming it, else the project's first on that machine.
+- **The agent button on a row**, when the row has more than one agent button
+  in its lines: one agent on all of them, so the user need not start one
+  for each. With a filter, it counts the buttons that are left.
+  - By machine, a machine's row: the agent starts on that machine, as the
+    repo button does, in the folder that holds its repos (their common
+    parent, or the home folder when that is `/`), with every repo and its
+    left-off lines.
+  - By project, a project's row, which has a button only when it is left off
+    on more than one machine: the agent starts on the machine the panel runs
+    on, the one the user sits at, in the project's clone there if it has one
+    (the common parent of its clones there), else in the home folder. It
+    gets every machine's repos and lines, with the ssh target of each other
+    machine from this machine's hosts file, and reaches them over the user's
+    own ssh, under the same limits.
+  - The prompt lists at most 20 lines a repo, and stops listing repos at
+    about 40,000 characters, saying how many it left out, so it stays under
+    the 128 KiB one argument may be.
 - **What it may do**: Omarchy starts agents with approvals switched off, so
   the repo guide holds the agent to looking freely and changing nothing
   (commit, push, pull, reset, dropping a stash, deleting a branch) until the
-  user says yes, and never force-pushing. fleetlog itself still changes
+  user says yes, and never force-pushing. It stays in the repos it was
+  given, and reaches another machine only with the target it was given,
+  putting several commands in one ssh call. fleetlog itself still changes
   no repo: the agent does, in a session the user started and sits in.
 - **Its ssh**: an interactive session the user asked for, not a run, so the
   user's own ssh config applies, agent forwarding included where it is set,

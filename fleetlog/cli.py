@@ -8,6 +8,7 @@
     fleetlog config                      open the config, with a guide when it is new
     fleetlog ask-agent [-- MACHINE FOLDER [LEFT...]]
                                              your coding agent, on the setup or on one repo
+    fleetlog ask-agent --repos JSON      your coding agent, on several repos at once
     fleetlog weekly [--retry]            build the weekly recap (its timer runs this)
     fleetlog notify                      the weekly notification (its timer runs this)
     fleetlog timers install main|viewer
@@ -71,12 +72,16 @@ def parser() -> argparse.ArgumentParser:
                    description="Opens ~/.config/fleet/log/config.toml in Omarchy's editor, or "
                                "$VISUAL or $EDITOR, after writing a commented guide there when "
                                "there is no config yet.")
-    p = sub.add_parser("ask-agent", help="start your coding agent, on the setup or on one repo",
+    p = sub.add_parser("ask-agent", help="start your coding agent, on the setup or on repos",
                        description="Starts Omarchy's default coding agent to go through the "
                                    "setup with you, or, given a machine and a repo's folder "
                                    "there, in that folder on that machine to work on what is "
                                    "left off (the panel's agent buttons). Put -- before the "
-                                   "machine, since the lines after it come from that machine.")
+                                   "machine, since the lines after it come from that machine. "
+                                   "With --repos, one agent works on several repos: on their "
+                                   "machine when they are all on one, else on this one.")
+    p.add_argument("--repos", metavar="JSON",
+                   help='the repos, as [{"machine", "path", "project", "lines": [...]}]')
     p.add_argument("machine", nargs="?", help="a machine's label")
     p.add_argument("folder", nargs="?", help="the repo's full path on that machine")
     p.add_argument("left", nargs="*", help="what is left off there, for the prompt")
@@ -124,9 +129,13 @@ def main(argv: list[str] | None = None) -> int:
                     cfg = None
                 return timers.status(cfg)
             return timers.install(args.role, config.load())
-        if args.cmd == "ask-agent" and args.machine is None:
+        if args.cmd == "ask-agent" and args.machine is None and args.repos is None:
             agent.run(agent.setup())
         cfg = config.load()
+        if args.cmd == "ask-agent" and args.repos is not None:
+            if args.machine is not None:
+                p.error("ask-agent takes --repos, or a machine and a folder, not both")
+            agent.run(*agent.repos(cfg, agent.parse(args.repos)))
         if args.cmd == "ask-agent":
             if args.folder is None:
                 p.error("ask-agent takes nothing, or a machine and a folder")
